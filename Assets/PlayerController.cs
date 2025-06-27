@@ -33,7 +33,7 @@ public class PlayerController : MonoBehaviour
         float horizontalInput = Input.GetAxis("Horizontal");
         
         Vector2 movement = new Vector2(horizontalInput * moveSpeed, 0);
-        rb.velocity = movement;
+        rb.linearVelocity = movement;
         
         // Sınırları kontrol et
         Vector3 pos = transform.position;
@@ -69,7 +69,7 @@ public class PlayerController : MonoBehaviour
                         1f // Yukarı doğru
                     ).normalized;
                     
-                    ballRb.velocity = hitDirection * hitForce;
+                    ballRb.linearVelocity = hitDirection * hitForce;
                     
                     Debug.Log("Player hit the ball!");
                 }
