@@ -4,8 +4,8 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
-    public float boundaryLeft = -7f;
-    public float boundaryRight = 7f;
+    public float boundaryLeft = -7;
+    public float boundaryRight = 7;
     
     [Header("Hit Settings")]
     public float hitForce = 10f;

@@ -4,8 +4,8 @@ public class AIController : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 4f;
-    public float boundaryLeft = -7f;
-    public float boundaryRight = 7f;
+    public float boundaryLeft = -7;
+    public float boundaryRight = 7;
     
     [Header("AI Settings")]
     public float reactionDistance = 8f;
