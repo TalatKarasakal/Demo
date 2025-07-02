@@ -1,18 +1,11 @@
 using UnityEngine;
-using UnityEngine.UI;
 
-public class GameManager : MonoBehaviour
+public class SimpleGameManager : MonoBehaviour
 {
     [Header("Score Settings")]
     public int playerScore = 0;
     public int aiScore = 0;
     public int scoreToWin = 5;
-    
-    [Header("UI References")]
-    public Text playerScoreText;
-    public Text aiScoreText;
-    public Text gameStatusText;
-    public Button restartButton;
     
     [Header("Game Objects")]
     public GameObject ball;
@@ -23,19 +16,11 @@ public class GameManager : MonoBehaviour
     
     void Start()
     {
-        // UI başlangıç ayarları
-        UpdateScoreUI();
+        Debug.Log("Game Started! First to " + scoreToWin + " wins!");
+        Debug.Log("Press R to restart, ESC to pause");
         
-        if (restartButton != null)
-        {
-            restartButton.onClick.AddListener(RestartGame);
-            restartButton.gameObject.SetActive(false);
-        }
-        
-        if (gameStatusText != null)
-        {
-            gameStatusText.text = "Game Started! First to " + scoreToWin + " wins!";
-        }
+        // Oyunu başlat
+        StartGame();
     }
     
     void Update()
@@ -51,6 +36,29 @@ public class GameManager : MonoBehaviour
         {
             TogglePause();
         }
+        
+        // Space ile oyunu başlat (duraklı durumdayken)
+        if (Input.GetKeyDown(KeyCode.Space) && Time.timeScale == 0f && !gameEnded)
+        {
+            Time.timeScale = 1f;
+            Debug.Log("Game Resumed!");
+        }
+    }
+    
+    void StartGame()
+    {
+        gameEnded = false;
+        Time.timeScale = 1f;
+        
+        // Topu başlat
+        if (ball != null)
+        {
+            BallController ballController = ball.GetComponent<BallController>();
+            if (ballController != null)
+            {
+                ballController.ResetBall();
+            }
+        }
     }
     
     public void OnPlayerScore()
@@ -58,7 +66,7 @@ public class GameManager : MonoBehaviour
         if (gameEnded) return;
         
         playerScore++;
-        UpdateScoreUI();
+        Debug.Log("Player Scores! Score: " + playerScore + " - " + aiScore);
         
         if (playerScore >= scoreToWin)
         {
@@ -66,7 +74,8 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            ShowTemporaryMessage("Player Scores! " + playerScore + " - " + aiScore);
+            // Kısa bekleme sonrası topu yeniden başlat
+            Invoke("RestartRound", 2f);
         }
     }
     
@@ -75,7 +84,7 @@ public class GameManager : MonoBehaviour
         if (gameEnded) return;
         
         aiScore++;
-        UpdateScoreUI();
+        Debug.Log("AI Scores! Score: " + playerScore + " - " + aiScore);
         
         if (aiScore >= scoreToWin)
         {
@@ -83,32 +92,36 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            ShowTemporaryMessage("AI Scores! " + playerScore + " - " + aiScore);
+            // Kısa bekleme sonrası topu yeniden başlat
+            Invoke("RestartRound", 2f);
         }
     }
     
-    void UpdateScoreUI()
+    void RestartRound()
     {
-        if (playerScoreText != null)
-            playerScoreText.text = "Player: " + playerScore;
-        
-        if (aiScoreText != null)
-            aiScoreText.text = "AI: " + aiScore;
+        if (!gameEnded)
+        {
+            // Sadece topu yeniden başlat
+            if (ball != null)
+            {
+                ball.transform.position = Vector3.zero;
+                BallController ballController = ball.GetComponent<BallController>();
+                if (ballController != null)
+                {
+                    ballController.ResetBall();
+                }
+            }
+        }
     }
     
     void EndGame(string winner)
     {
         gameEnded = true;
         
-        if (gameStatusText != null)
-        {
-            gameStatusText.text = winner + " Wins! Press R to restart";
-        }
-        
-        if (restartButton != null)
-        {
-            restartButton.gameObject.SetActive(true);
-        }
+        Debug.Log("=== GAME OVER ===");
+        Debug.Log(winner + " WINS!");
+        Debug.Log("Final Score: Player " + playerScore + " - " + aiScore + " AI");
+        Debug.Log("Press R to play again");
         
         // Topu durdur
         if (ball != null)
@@ -118,33 +131,26 @@ public class GameManager : MonoBehaviour
                 ballRb.linearVelocity = Vector2.zero;
         }
         
-        Debug.Log(winner + " wins the game!");
+        // Oyunu duraklat
+        Time.timeScale = 0f;
     }
     
     public void RestartGame()
     {
+        Debug.Log("Game Restarted!");
+        
         // Skorları sıfırla
         playerScore = 0;
         aiScore = 0;
         gameEnded = false;
         
-        // UI'ı güncelle
-        UpdateScoreUI();
-        
-        if (gameStatusText != null)
-        {
-            gameStatusText.text = "Game Restarted! First to " + scoreToWin + " wins!";
-        }
-        
-        if (restartButton != null)
-        {
-            restartButton.gameObject.SetActive(false);
-        }
-        
         // Oyun objelerini sıfırla
         ResetGameObjects();
         
-        Debug.Log("Game restarted!");
+        // Oyunu başlat
+        Time.timeScale = 1f;
+        
+        Debug.Log("Score: " + playerScore + " - " + aiScore);
     }
     
     void ResetGameObjects()
@@ -163,7 +169,15 @@ public class GameManager : MonoBehaviour
         // Player pozisyonunu sıfırla
         if (player != null)
         {
-            player.transform.position = new Vector3(0, -4, 0);
+            PlayerController playerController = player.GetComponent<PlayerController>();
+            if (playerController != null)
+            {
+                playerController.ResetPlayer();
+            }
+            else
+            {
+                player.transform.position = new Vector3(0, -4, 0);
+            }
         }
         
         // AI pozisyonunu sıfırla
@@ -173,49 +187,27 @@ public class GameManager : MonoBehaviour
         }
     }
     
-    void ShowTemporaryMessage(string message)
-    {
-        if (gameStatusText != null)
-        {
-            gameStatusText.text = message;
-            
-            // 2 saniye sonra normal mesajı göster
-            Invoke("ShowNormalMessage", 2f);
-        }
-    }
-    
-    void ShowNormalMessage()
-    {
-        if (gameStatusText != null && !gameEnded)
-        {
-            gameStatusText.text = "Score: " + playerScore + " - " + aiScore;
-        }
-    }
-    
     void TogglePause()
     {
+        if (gameEnded) return;
+        
         if (Time.timeScale == 1)
         {
             Time.timeScale = 0;
-            if (gameStatusText != null)
-                gameStatusText.text = "PAUSED - Press ESC to continue";
+            Debug.Log("Game PAUSED - Press ESC to continue or Space to resume");
         }
         else
         {
             Time.timeScale = 1;
-            ShowNormalMessage();
+            Debug.Log("Game RESUMED");
         }
     }
     
     void OnApplicationPause(bool pauseStatus)
     {
-        if (pauseStatus)
+        if (pauseStatus && !gameEnded)
         {
             Time.timeScale = 0;
-        }
-        else
-        {
-            Time.timeScale = 1;
         }
     }
 }
