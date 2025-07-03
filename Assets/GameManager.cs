@@ -12,43 +12,44 @@ public class SimpleGameManager : MonoBehaviour
     public GameObject player;
     public GameObject aiPaddle;
     
+    [Header("UI Reference")]
+    public UIManager uiManager;
+    
     private bool gameEnded = false;
+    private bool gameStarted = false;
     
     void Start()
     {
-        Debug.Log("Game Started! First to " + scoreToWin + " wins!");
-        Debug.Log("Press R to restart, ESC to pause");
+        // UI Manager'ı bul
+        if (uiManager == null)
+            uiManager = FindFirstObjectByType<UIManager>();
+            
+        Debug.Log("Game Manager Ready! First to " + scoreToWin + " wins!");
         
-        // Oyunu başlat
-        StartGame();
+        // Oyun başlamadan önce objeler hazır olsun
+        ResetGameObjects();
     }
     
     void Update()
     {
-        // R tuşu ile oyunu yeniden başlat
-        if (Input.GetKeyDown(KeyCode.R))
+        // Sadece oyun başladıysa keyboard kontrollerini dinle
+        if (gameStarted)
         {
-            RestartGame();
-        }
-        
-        // ESC ile oyunu duraklat/devam ettir
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            TogglePause();
-        }
-        
-        // Space ile oyunu başlat (duraklı durumdayken)
-        if (Input.GetKeyDown(KeyCode.Space) && Time.timeScale == 0f && !gameEnded)
-        {
-            Time.timeScale = 1f;
-            Debug.Log("Game Resumed!");
+            // R tuşu ile oyunu yeniden başlat
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                RestartGame();
+            }
         }
     }
     
-    void StartGame()
+    public void StartGame()
     {
         gameEnded = false;
+        gameStarted = true;
         Time.timeScale = 1f;
+        
+        Debug.Log("Game Started!");
         
         // Topu başlat
         if (ball != null)
@@ -117,11 +118,11 @@ public class SimpleGameManager : MonoBehaviour
     void EndGame(string winner)
     {
         gameEnded = true;
+        gameStarted = false;
         
         Debug.Log("=== GAME OVER ===");
         Debug.Log(winner + " WINS!");
         Debug.Log("Final Score: Player " + playerScore + " - " + aiScore + " AI");
-        Debug.Log("Press R to play again");
         
         // Topu durdur
         if (ball != null)
@@ -131,8 +132,16 @@ public class SimpleGameManager : MonoBehaviour
                 ballRb.linearVelocity = Vector2.zero;
         }
         
-        // Oyunu duraklat
-        Time.timeScale = 0f;
+        // UI Manager'a oyun bittiğini bildir
+        if (uiManager != null)
+        {
+            uiManager.ShowGameOverPanel(winner);
+        }
+        else
+        {
+            // UI Manager yoksa oyunu duraklat
+            Time.timeScale = 0f;
+        }
     }
     
     public void RestartGame()
@@ -148,7 +157,7 @@ public class SimpleGameManager : MonoBehaviour
         ResetGameObjects();
         
         // Oyunu başlat
-        Time.timeScale = 1f;
+        StartGame();
         
         Debug.Log("Score: " + playerScore + " - " + aiScore);
     }
@@ -162,7 +171,7 @@ public class SimpleGameManager : MonoBehaviour
             BallController ballController = ball.GetComponent<BallController>();
             if (ballController != null)
             {
-                ballController.ResetBall();
+                ballController.StopBall();
             }
         }
         
@@ -184,30 +193,31 @@ public class SimpleGameManager : MonoBehaviour
         if (aiPaddle != null)
         {
             aiPaddle.transform.position = new Vector3(0, 4, 0);
+            Rigidbody2D aiRb = aiPaddle.GetComponent<Rigidbody2D>();
+            if (aiRb != null)
+            {
+                aiRb.linearVelocity = Vector2.zero;
+            }
         }
     }
     
-    void TogglePause()
+    public void PauseGame()
     {
-        if (gameEnded) return;
-        
-        if (Time.timeScale == 1)
-        {
-            Time.timeScale = 0;
-            Debug.Log("Game PAUSED - Press ESC to continue or Space to resume");
-        }
-        else
-        {
-            Time.timeScale = 1;
-            Debug.Log("Game RESUMED");
-        }
+        Time.timeScale = 0f;
+        Debug.Log("Game PAUSED");
+    }
+    
+    public void ResumeGame()
+    {
+        Time.timeScale = 1f;
+        Debug.Log("Game RESUMED");
     }
     
     void OnApplicationPause(bool pauseStatus)
     {
-        if (pauseStatus && !gameEnded)
+        if (pauseStatus && !gameEnded && gameStarted)
         {
-            Time.timeScale = 0;
+            Time.timeScale = 0f;
         }
     }
 }
