@@ -1,55 +1,64 @@
 using UnityEngine;
-using UnityEngine.UI;
 
-public class GameManager : MonoBehaviour
+public class SimpleGameManager : MonoBehaviour
 {
     [Header("Score Settings")]
     public int playerScore = 0;
     public int aiScore = 0;
     public int scoreToWin = 5;
     
-    [Header("UI References")]
-    public Text playerScoreText;
-    public Text aiScoreText;
-    public Text gameStatusText;
-    public Button restartButton;
-    
     [Header("Game Objects")]
     public GameObject ball;
     public GameObject player;
     public GameObject aiPaddle;
     
+    [Header("UI Reference")]
+    public UIManager uiManager;
+    
     private bool gameEnded = false;
+    private bool gameStarted = false;
     
     void Start()
     {
-        // UI başlangıç ayarları
-        UpdateScoreUI();
+        // UI Manager'ı bul
+        if (uiManager == null)
+            uiManager = FindFirstObjectByType<UIManager>();
+            
+        Debug.Log("Game Manager Ready! First to " + scoreToWin + " wins!");
         
-        if (restartButton != null)
-        {
-            restartButton.onClick.AddListener(RestartGame);
-            restartButton.gameObject.SetActive(false);
-        }
-        
-        if (gameStatusText != null)
-        {
-            gameStatusText.text = "Game Started! First to " + scoreToWin + " wins!";
-        }
+        // Oyun başlamadan önce objeler hazır olsun
+        ResetGameObjects();
     }
     
     void Update()
     {
-        // R tuşu ile oyunu yeniden başlat
-        if (Input.GetKeyDown(KeyCode.R))
+        // Sadece oyun başladıysa keyboard kontrollerini dinle
+        if (gameStarted)
         {
-            RestartGame();
+            // R tuşu ile oyunu yeniden başlat
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                RestartGame();
+            }
         }
+    }
+    
+    public void StartGame()
+    {
+        gameEnded = false;
+        gameStarted = true;
+        Time.timeScale = 1f;
         
-        // ESC ile oyunu duraklat/devam ettir
-        if (Input.GetKeyDown(KeyCode.Escape))
+        Debug.Log("Game Started!");
+        
+        // Topu başlat
+        if (ball != null)
         {
-            TogglePause();
+            BallController ballController = ball.GetComponent<BallController>();
+            if (ballController != null)
+            {
+                ballController.ResetBall();
+            }
         }
     }
     
@@ -58,7 +67,7 @@ public class GameManager : MonoBehaviour
         if (gameEnded) return;
         
         playerScore++;
-        UpdateScoreUI();
+        Debug.Log("Player Scores! Score: " + playerScore + " - " + aiScore);
         
         if (playerScore >= scoreToWin)
         {
@@ -66,7 +75,8 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            ShowTemporaryMessage("Player Scores! " + playerScore + " - " + aiScore);
+            // Kısa bekleme sonrası topu yeniden başlat
+            Invoke("RestartRound", 2f);
         }
     }
     
@@ -75,7 +85,7 @@ public class GameManager : MonoBehaviour
         if (gameEnded) return;
         
         aiScore++;
-        UpdateScoreUI();
+        Debug.Log("AI Scores! Score: " + playerScore + " - " + aiScore);
         
         if (aiScore >= scoreToWin)
         {
@@ -83,32 +93,36 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            ShowTemporaryMessage("AI Scores! " + playerScore + " - " + aiScore);
+            // Kısa bekleme sonrası topu yeniden başlat
+            Invoke("RestartRound", 2f);
         }
     }
     
-    void UpdateScoreUI()
+    void RestartRound()
     {
-        if (playerScoreText != null)
-            playerScoreText.text = "Player: " + playerScore;
-        
-        if (aiScoreText != null)
-            aiScoreText.text = "AI: " + aiScore;
+        if (!gameEnded)
+        {
+            // Sadece topu yeniden başlat
+            if (ball != null)
+            {
+                ball.transform.position = Vector3.zero;
+                BallController ballController = ball.GetComponent<BallController>();
+                if (ballController != null)
+                {
+                    ballController.ResetBall();
+                }
+            }
+        }
     }
     
     void EndGame(string winner)
     {
         gameEnded = true;
+        gameStarted = false;
         
-        if (gameStatusText != null)
-        {
-            gameStatusText.text = winner + " Wins! Press R to restart";
-        }
-        
-        if (restartButton != null)
-        {
-            restartButton.gameObject.SetActive(true);
-        }
+        Debug.Log("=== GAME OVER ===");
+        Debug.Log(winner + " WINS!");
+        Debug.Log("Final Score: Player " + playerScore + " - " + aiScore + " AI");
         
         // Topu durdur
         if (ball != null)
@@ -118,33 +132,34 @@ public class GameManager : MonoBehaviour
                 ballRb.linearVelocity = Vector2.zero;
         }
         
-        Debug.Log(winner + " wins the game!");
+        // UI Manager'a oyun bittiğini bildir
+        if (uiManager != null)
+        {
+            uiManager.ShowGameOverPanel(winner);
+        }
+        else
+        {
+            // UI Manager yoksa oyunu duraklat
+            Time.timeScale = 0f;
+        }
     }
     
     public void RestartGame()
     {
+        Debug.Log("Game Restarted!");
+        
         // Skorları sıfırla
         playerScore = 0;
         aiScore = 0;
         gameEnded = false;
         
-        // UI'ı güncelle
-        UpdateScoreUI();
-        
-        if (gameStatusText != null)
-        {
-            gameStatusText.text = "Game Restarted! First to " + scoreToWin + " wins!";
-        }
-        
-        if (restartButton != null)
-        {
-            restartButton.gameObject.SetActive(false);
-        }
-        
         // Oyun objelerini sıfırla
         ResetGameObjects();
         
-        Debug.Log("Game restarted!");
+        // Oyunu başlat
+        StartGame();
+        
+        Debug.Log("Score: " + playerScore + " - " + aiScore);
     }
     
     void ResetGameObjects()
@@ -156,66 +171,53 @@ public class GameManager : MonoBehaviour
             BallController ballController = ball.GetComponent<BallController>();
             if (ballController != null)
             {
-                ballController.ResetBall();
+                ballController.StopBall();
             }
         }
         
         // Player pozisyonunu sıfırla
         if (player != null)
         {
-            player.transform.position = new Vector3(0, -4, 0);
+            PlayerController playerController = player.GetComponent<PlayerController>();
+            if (playerController != null)
+            {
+                playerController.ResetPlayer();
+            }
+            else
+            {
+                player.transform.position = new Vector3(0, -4, 0);
+            }
         }
         
         // AI pozisyonunu sıfırla
         if (aiPaddle != null)
         {
             aiPaddle.transform.position = new Vector3(0, 4, 0);
+            Rigidbody2D aiRb = aiPaddle.GetComponent<Rigidbody2D>();
+            if (aiRb != null)
+            {
+                aiRb.linearVelocity = Vector2.zero;
+            }
         }
     }
     
-    void ShowTemporaryMessage(string message)
+    public void PauseGame()
     {
-        if (gameStatusText != null)
-        {
-            gameStatusText.text = message;
-            
-            // 2 saniye sonra normal mesajı göster
-            Invoke("ShowNormalMessage", 2f);
-        }
+        Time.timeScale = 0f;
+        Debug.Log("Game PAUSED");
     }
     
-    void ShowNormalMessage()
+    public void ResumeGame()
     {
-        if (gameStatusText != null && !gameEnded)
-        {
-            gameStatusText.text = "Score: " + playerScore + " - " + aiScore;
-        }
-    }
-    
-    void TogglePause()
-    {
-        if (Time.timeScale == 1)
-        {
-            Time.timeScale = 0;
-            if (gameStatusText != null)
-                gameStatusText.text = "PAUSED - Press ESC to continue";
-        }
-        else
-        {
-            Time.timeScale = 1;
-            ShowNormalMessage();
-        }
+        Time.timeScale = 1f;
+        Debug.Log("Game RESUMED");
     }
     
     void OnApplicationPause(bool pauseStatus)
     {
-        if (pauseStatus)
+        if (pauseStatus && !gameEnded && gameStarted)
         {
-            Time.timeScale = 0;
-        }
-        else
-        {
-            Time.timeScale = 1;
+            Time.timeScale = 0f;
         }
     }
 }
