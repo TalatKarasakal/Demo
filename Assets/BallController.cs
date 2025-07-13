@@ -1,171 +1,147 @@
 using UnityEngine;
+using System.Collections;
 
 public class BallController : MonoBehaviour
 {
     [Header("Ball Settings")]
-    public float initialSpeed = 5f;
-    public float maxSpeed = 15f;
+    public float initialSpeed     = 5f;
+    public float maxSpeed         = 15f;
     public float bounceMultiplier = 1.05f;
-    public float wallBounceForce = 0.9f;
-    
+    public float wallBounceForce  = 0.9f;
+
     [Header("Boundaries")]
-    public float leftWall = -8f;
-    public float rightWall = 8f;
-    public float topBoundary = 5f;
+    public float leftWall    = -8f;
+    public float rightWall   =  8f;
+    public float topBoundary =  5f;
     public float bottomBoundary = -5f;
-    
-    private Rigidbody2D rb;
-    private Vector2 lastVelocity;
-    private SimpleGameManager gameManager;
-    
-    void Start()
+
+    Rigidbody2D      rb;
+    Vector2          lastVel;
+    SimpleGameManager gm;
+
+    void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         if (rb == null)
-        {
-            Debug.LogError("Rigidbody2D bileşeni eksik!");
-            return;
-        }
-        
-        gameManager = FindFirstObjectByType<SimpleGameManager>();
-        if (gameManager == null)
-        {
-            Debug.LogError("GameManager sahnede bulunamadı!");
-        }
-        
-        rb.gravityScale = 0f;
-        rb.linearDamping = 0f;
-        rb.angularDamping = 0f;
-        rb.linearVelocity = Vector2.zero;
+            Debug.LogError("BallController: Rigidbody2D bulunamadı!", this);
+        else
+            rb.freezeRotation = true;
     }
-    
+
+    void Start()
+    {
+        gm = Object.FindAnyObjectByType<SimpleGameManager>();
+        if (gm == null)
+            Debug.LogError("BallController: SimpleGameManager bulunamadı!", this);
+
+        rb.linearVelocity = Vector2.zero;
+        ResetBall();
+    }
+
     void Update()
     {
-        if (Time.timeScale == 0f || rb == null) return;
-        
-        if (rb.linearVelocity.magnitude > maxSpeed)
-        {
+        if (rb == null || Time.timeScale == 0f) return;
+
+        float speed = rb.linearVelocity.magnitude;
+        if (speed > maxSpeed)
             rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
-        }
-        
-        if (rb.linearVelocity.magnitude < 1f && rb.linearVelocity.magnitude > 0.1f)
-        {
+        else if (speed < 1f && speed > 0.1f)
             rb.linearVelocity = rb.linearVelocity.normalized * 2f;
-        }
-        
-        lastVelocity = rb.linearVelocity;
+
+        lastVel = rb.linearVelocity;
         CheckBoundaries();
     }
-    
+
     public void StartGame()
     {
-        Vector2 startDirection = new Vector2(
-            Random.Range(-0.5f, 0.5f),
-            Random.Range(0f, 1f) > 0.5f ? 1f : -1f
-        ).normalized;
-        
-        rb.linearVelocity = startDirection * initialSpeed;
+        Vector2 dir = new Vector2(Random.Range(-0.5f, 0.5f),
+                                  Random.value < .5f ? -1f : 1f).normalized;
+        rb.linearVelocity = dir * initialSpeed;
     }
-    
+
     void CheckBoundaries()
     {
-        Vector3 pos = transform.position;
-        
-        if (pos.x <= leftWall || pos.x >= rightWall)
+        Vector3 p = transform.position;
+
+        // Yan duvar sekmesi
+        if (p.x <= leftWall || p.x >= rightWall)
         {
-            Vector2 newVelocity = new Vector2(-lastVelocity.x * wallBounceForce, lastVelocity.y);
-            rb.linearVelocity = newVelocity;
-            pos.x = Mathf.Clamp(pos.x, leftWall + 0.1f, rightWall - 0.1f);
-            transform.position = pos;
+            Vector2 v = lastVel;
+            v.x = -v.x * wallBounceForce;
+            rb.linearVelocity = v;
+            p.x = Mathf.Clamp(p.x, leftWall + .1f, rightWall - .1f);
+            transform.position = p;
         }
-        
-        if (pos.y > topBoundary)
-        {
+
+        // Üst-alt gol kontrolü
+        if (p.y > topBoundary)
             OnGoal("Player");
-        }
-        else if (pos.y < bottomBoundary)
-        {
+        else if (p.y < bottomBoundary)
             OnGoal("AI");
-        }
     }
-    
-    void OnGoal(string winner)
+
+    void OnGoal(string who)
     {
         rb.linearVelocity = Vector2.zero;
-        if (gameManager != null)
+        if (gm != null)
         {
-            if (winner == "Player")
-                gameManager.OnPlayerScore();
-            else
-                gameManager.OnAIScore();
+            if (who == "Player") gm.OnPlayerScore();
+            else                 gm.OnAIScore();
         }
-        else
-        {
-            Debug.LogError("GameManager bulunamadı!");
-        }
-        Debug.Log(winner + " scored!");
+        Debug.Log($"{who} scored!");
     }
-    
-    void OnCollisionEnter2D(Collision2D collision)
+
+    void OnCollisionEnter2D(Collision2D col)
     {
-        if (Time.timeScale == 0f) return;
-        
-        if (collision.gameObject.CompareTag("Player") || collision.gameObject.CompareTag("AI"))
+        if (rb == null || Time.timeScale == 0f) return;
+
+        if (col.gameObject.CompareTag("Player") || col.gameObject.CompareTag("AI"))
         {
-            Vector2 reflection = Vector2.Reflect(lastVelocity, collision.contacts[0].normal);
-            
-            Rigidbody2D paddleRb = collision.gameObject.GetComponent<Rigidbody2D>();
-            if (paddleRb != null)
+            Vector2 refl = Vector2.Reflect(lastVel, col.contacts[0].normal)
+                           * bounceMultiplier;
+
+            var prb = col.gameObject.GetComponent<Rigidbody2D>();
+            if (prb != null) refl.x += prb.linearVelocity.x * 0.3f;
+
+            if (Mathf.Abs(refl.y) < 2f) 
+                refl.y = Mathf.Sign(refl.y) * 2f;
+
+            float ang = Mathf.Atan2(refl.y, refl.x) * Mathf.Rad2Deg;
+            if (Mathf.Abs(ang) > 75f && Mathf.Abs(ang) < 105f)
             {
-                float paddleVelocityInfluence = paddleRb.linearVelocity.x * 0.3f;
-                reflection.x += paddleVelocityInfluence;
-            }
-            
-            rb.linearVelocity = reflection * bounceMultiplier;
-            
-            if (Mathf.Abs(rb.linearVelocity.y) < 2f)
-            {
-                float yDirection = rb.linearVelocity.y > 0 ? 1f : -1f;
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, yDirection * 2f);
-            }
-            
-            float angle = Mathf.Atan2(rb.linearVelocity.y, rb.linearVelocity.x) * Mathf.Rad2Deg;
-            float maxAngle = 75f;
-            
-            if (Mathf.Abs(angle) > maxAngle && Mathf.Abs(angle) < 180f - maxAngle)
-            {
-                float clampedAngle = Mathf.Sign(angle) * maxAngle;
-                float speed = rb.linearVelocity.magnitude;
-                rb.linearVelocity = new Vector2(
-                    Mathf.Cos(clampedAngle * Mathf.Deg2Rad) * speed,
-                    Mathf.Sin(clampedAngle * Mathf.Deg2Rad) * speed
+                float cl = Mathf.Sign(ang) * 75f;
+                float m = refl.magnitude;
+                refl = new Vector2(
+                    Mathf.Cos(cl * Mathf.Deg2Rad) * m, 
+                    Mathf.Sin(cl * Mathf.Deg2Rad) * m
                 );
             }
-            
-            Debug.Log("Ball hit " + collision.gameObject.name);
+
+            rb.linearVelocity = refl;
+            Debug.Log("Ball hit " + col.gameObject.name);
         }
     }
-    
+
     public void ResetBall()
     {
         transform.position = Vector3.zero;
         rb.linearVelocity = Vector2.zero;
-        Invoke("StartGame", 0.5f);
+        Invoke(nameof(StartGame), 0.5f);
     }
-    
+
     public void StopBall()
     {
-        rb.linearVelocity = Vector2.zero;
+        if (rb == null) rb = GetComponent<Rigidbody2D>();
+        if (rb != null) rb.linearVelocity = Vector2.zero;
     }
-    
+
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawLine(new Vector3(leftWall, -10, 0), new Vector3(leftWall, 10, 0));
-        Gizmos.DrawLine(new Vector3(rightWall, -10, 0), new Vector3(rightWall, 10, 0));
-        
+        Gizmos.DrawLine(new Vector3(leftWall, -10), new Vector3(leftWall, 10));
+        Gizmos.DrawLine(new Vector3(rightWall, -10), new Vector3(rightWall, 10));
         Gizmos.color = Color.red;
-        Gizmos.DrawLine(new Vector3(-10, topBoundary, 0), new Vector3(10, topBoundary, 0));
-        Gizmos.DrawLine(new Vector3(-10, bottomBoundary, 0), new Vector3(10, bottomBoundary, 0));
+        Gizmos.DrawLine(new Vector3(-10, topBoundary), new Vector3(10, topBoundary));
+        Gizmos.DrawLine(new Vector3(-10, bottomBoundary), new Vector3(10, bottomBoundary));
     }
 }

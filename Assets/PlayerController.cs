@@ -3,163 +3,82 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    public float moveSpeed = 8f;           // Hareket hızı
-    public float acceleration = 20f;       // İvmelenme
-    public float deceleration = 15f;       // Yavaşlama
-    public float boundaryLeft = -7f;       // Sol sınır
-    public float boundaryRight = 7f;       // Sağ sınır
+    public float moveSpeed    = 8f;
+    public float acceleration = 20f;
+    public float deceleration = 15f;
+    public float boundaryLeft = -7f;
+    public float boundaryRight=  7f;
 
     [Header("Hit Settings")]
     public float hitForce = 10f;
     public float hitRange = 1f;
 
-    private Rigidbody2D rb;
-    private float targetVelocity = 0f;
-    private bool leftPressed = false;
-    private bool rightPressed = false;
+    Rigidbody2D rb;
 
-    void Start()
+    void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        rb.gravityScale = 0f;
-        rb.freezeRotation = true;
+        if (rb == null)
+            Debug.LogError("PlayerController: Rigidbody2D bulunamadı!", this);
+        else
+            rb.freezeRotation = true;
     }
 
     void Update()
     {
-        HandleInput();
         HandleMovement();
         HandleHit();
-        CheckBoundaries();
-    }
-
-    void HandleInput()
-    {
-        leftPressed = false;
-        rightPressed = false;
-
-#if UNITY_EDITOR
-        // Mouse kontrolü (Editor için)
-        if (Input.GetMouseButton(0))
-        {
-            Vector2 mousePos = Input.mousePosition;
-            // Sadece ekranın alt yarısına basıldığında tepki ver
-            if (mousePos.y <= Screen.height * 0.5f)
-            {
-                if (mousePos.x < Screen.width * 0.5f)
-                    leftPressed = true;
-                else
-                    rightPressed = true;
-            }
-        }
-
-        // Klavye kontrolü (test için)
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-            leftPressed = true;
-        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-            rightPressed = true;
-#else
-        // Touch kontrolü (mobil için)
-        for (int i = 0; i < Input.touchCount; i++)
-        {
-            Touch touch = Input.GetTouch(i);
-            if (touch.phase == TouchPhase.Stationary || touch.phase == TouchPhase.Moved)
-            {
-                // Sadece ekranın alt yarısına basıldığında tepki ver
-                if (touch.position.y <= Screen.height * 0.5f)
-                {
-                    if (touch.position.x < Screen.width * 0.5f)
-                        leftPressed = true;
-                    else
-                        rightPressed = true;
-                }
-            }
-        }
-#endif
+        ClampPosition();
     }
 
     void HandleMovement()
     {
-        // Hedef hızı belirle
-        if (leftPressed && !rightPressed)
-        {
-            targetVelocity = -moveSpeed;
-        }
-        else if (rightPressed && !leftPressed)
-        {
-            targetVelocity = moveSpeed;
-        }
-        else
-        {
-            targetVelocity = 0f;
-        }
+        float input = 0f;
+        #if UNITY_EDITOR
+        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))  input = -1f;
+        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) input = +1f;
+        #endif
 
-        // Mevcut hızı hedef hıza doğru yumuşak geçiş
-        float currentVelocityX = rb.linearVelocity.x;
-        float velocityDifference = targetVelocity - currentVelocityX;
-        
-        float accelerationRate = targetVelocity != 0f ? acceleration : deceleration;
-        float velocityChange = velocityDifference * accelerationRate * Time.deltaTime;
-        
-        // Hızı güncelle
-        rb.linearVelocity = new Vector2(currentVelocityX + velocityChange, rb.linearVelocity.y);
-    }
+        float currentX = rb.linearVelocity.x;
+        float desiredX = input * moveSpeed;
+        float diff     = desiredX - currentX;
+        float rate     = (Mathf.Approximately(desiredX, 0f) ? deceleration : acceleration);
+        float change   = diff * rate * Time.deltaTime;
 
-    void CheckBoundaries()
-    {
-        Vector3 pos = transform.position;
-        
-        // Sınır kontrolü ve pozisyon düzeltmesi
-        if (pos.x < boundaryLeft)
-        {
-            pos.x = boundaryLeft;
-            transform.position = pos;
-            if (rb.linearVelocity.x < 0)
-                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-        }
-        else if (pos.x > boundaryRight)
-        {
-            pos.x = boundaryRight;
-            transform.position = pos;
-            if (rb.linearVelocity.x > 0)
-                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-        }
+        rb.linearVelocity = new Vector2(currentX + change, rb.linearVelocity.y);
     }
 
     void HandleHit()
     {
         if (Input.GetKeyDown(KeyCode.Space))
-        {
-            HitBall();
-        }
+            TryHit();
     }
 
-    public void HitBall()
+    void TryHit()
     {
-        GameObject ball = GameObject.FindWithTag("Ball");
+        var ball = GameObject.FindWithTag("Ball");
         if (ball == null) return;
         if (Vector2.Distance(transform.position, ball.transform.position) > hitRange) return;
 
-        var ballRb = ball.GetComponent<Rigidbody2D>();
-        if (ballRb == null) return;
+        var bRb = ball.GetComponent<Rigidbody2D>();
+        if (bRb == null) return;
 
-        // Raket hareket yönüne göre topa açı ver
-        float horizontalInfluence = rb.linearVelocity.x * 0.3f;
-        Vector2 dir = new Vector2(
-            horizontalInfluence + Random.Range(-0.2f, 0.2f),
-            1f
-        ).normalized;
-        
-        ballRb.linearVelocity = dir * hitForce;
+        Vector2 dir = new Vector2(rb.linearVelocity.x * 0.3f + Random.Range(-0.2f,0.2f), 1f).normalized;
+        bRb.linearVelocity = dir * hitForce;
         Debug.Log("Player hit the ball!");
     }
 
-    // Oyun sıfırlandığında çağrılır
+    void ClampPosition()
+    {
+        Vector3 p = transform.position;
+        p.x = Mathf.Clamp(p.x, boundaryLeft, boundaryRight);
+        transform.position = p;
+    }
+
     public void ResetPlayer()
     {
-        transform.position = new Vector3(0, transform.position.y, 0);
-        rb.linearVelocity = Vector2.zero;
-        targetVelocity = 0f;
+        transform.position = new Vector3(0f, transform.position.y, 0f);
+        if (rb != null) rb.linearVelocity = Vector2.zero;
     }
 
     void OnDrawGizmosSelected()

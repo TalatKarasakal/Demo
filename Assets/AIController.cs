@@ -3,144 +3,112 @@ using UnityEngine;
 public class AIController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    public float moveSpeed = 4f;
-    public float boundaryLeft = -7;
-    public float boundaryRight = 7;
+    public float moveSpeed       = 4f;
+    public float boundaryLeft    = -7f;
+    public float boundaryRight   = 7f;
 
     [Header("AI Settings")]
     public float reactionDistance = 8f;
-    public float hitRange = 1f;
-    public float hitForce = 10f;
-    public float difficulty = 0.8f; // 0-1 arası, 1 = mükemmel AI
+    public float hitRange         = 1f;
+    public float hitForce         = 10f;
+    [Range(0f,1f)] public float difficulty = 0.8f;
 
-    private Rigidbody2D rb;
-    private GameObject ball;
-    private bool isMovingToBall = false;
+    Rigidbody2D rb;
+    GameObject  ball;
 
-    void Start()
+    void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         if (rb == null)
             Debug.LogError("AIController: Rigidbody2D bulunamadı!", this);
+        else
+            rb.freezeRotation = true;
+    }
+
+    void Start()
+    {
         ball = GameObject.FindWithTag("Ball");
         if (ball == null)
-            Debug.LogError("AIController: Top (Ball tag’li) bulunamadı!", this);
-
-        // Rigidbody2D ayarları
-        rb.gravityScale = 0f;
-        rb.freezeRotation = true;
+            Debug.LogError("AIController: Top (tag=Ball) bulunamadı!", this);
     }
 
     void Update()
     {
-        if (ball == null)
-        {
-            ball = GameObject.FindWithTag("Ball");
-            if (ball == null)
-                Debug.LogError("AIController: Top (Ball tag’li) bulunamadı!", this);
-            return;
-        }
-
+        if (rb == null || ball == null) return;
         HandleAI();
     }
 
     void HandleAI()
     {
-        // 1) Topa olan mesafe ve hızı al
-        float distanceToBall = Vector2.Distance(transform.position, ball.transform.position);
-        Rigidbody2D ballRb = ball.GetComponent<Rigidbody2D>();
-        Vector2 ballVelocity = ballRb != null ? ballRb.linearVelocity : Vector2.zero;
+        Vector2 pos    = transform.position;
+        Vector2 bPos   = ball.transform.position;
+        Rigidbody2D bRb = ball.GetComponent<Rigidbody2D>();
+        Vector2 bVel   = bRb != null ? bRb.linearVelocity : Vector2.zero;
 
-        // 2) Koşulları daha okunaklı ara değişkenlerle tut
-        bool ballMovingDown = ballVelocity.y < 0f;  // Y negatif olunca top AI'ya doğru geliyor (yukarıdan aşağı iniyor)
-        bool aboveBall = transform.position.y > ball.transform.position.y;
-        bool withinReaction = distanceToBall < reactionDistance;
+        float dist           = Vector2.Distance(pos, bPos);
+        bool  comingTowards = bVel.y < 0f && bPos.y < pos.y;
+        bool  closeEnough   = dist < reactionDistance;
 
-        if (ballMovingDown && aboveBall && withinReaction)
+        if (comingTowards && closeEnough)
         {
-            // AI aktive olsun
-            float predictedX = PredictBallPosition();
+            // Hedef X tahmini + sapma
+            float targetX = PredictBallX();
+            float err     = 1f - difficulty;
+            targetX += Random.Range(-err, +err);
 
-            // Zorluk seviyesine göre sapma ekle (-1+difficulty … +1-difficulty)
-            float errorRange = 1f - difficulty;
-            predictedX += Random.Range(-errorRange, +errorRange);
-
-            MoveToTarget(predictedX);
-
-            // Vurma menziline girerse topa vur
-            if (distanceToBall <= hitRange)
+            MoveTo(targetX);
+            if (dist <= hitRange)
                 HitBall();
         }
         else
         {
-            // Hiçbir koşul sağlanmıyorsa ortada bekle (hedef X = 0)
-            MoveToTarget(0f);
+            MoveTo(0f);  // merkeze dön
         }
     }
 
-    void MoveToTarget(float targetX)
+    float PredictBallX()
     {
-        // 1) Hedefi klampla
-        float clampedX = Mathf.Clamp(targetX, boundaryLeft, boundaryRight);
+        Rigidbody2D bRb = ball.GetComponent<Rigidbody2D>();
+        Vector2 bPos = ball.transform.position;
+        Vector2 bVel = bRb != null ? bRb.linearVelocity : Vector2.zero;
 
-        // 2) AI’nın ne kadar uzak olduğunu al
-        float deltaX = clampedX - transform.position.x;
+        if (Mathf.Approximately(bVel.y, 0f))
+            return transform.position.x;
 
-        // 3) Yeterince yakınsa hareketi durdur
-        if (Mathf.Abs(deltaX) < 0.05f)
+        float timeToAI = (transform.position.y - bPos.y) / Mathf.Abs(bVel.y);
+        return bPos.x + bVel.x * timeToAI;
+    }
+
+    /// <summary>
+    /// Basitçe MoveToTarget’i public ve kısaltılmış isimle expose ettik.
+    /// </summary>
+    public void MoveTo(float targetX)
+    {
+        float tx  = Mathf.Clamp(targetX, boundaryLeft, boundaryRight);
+        float dx  = tx - transform.position.x;
+        if (Mathf.Abs(dx) < 0.05f)
         {
             rb.linearVelocity = Vector2.zero;
             return;
         }
-
-        // 4) Hangi yönde hareket edilecek?
-        float dir = Mathf.Sign(deltaX);
-
-        // 5) Hızı uygula (sadece X komponenti)
-        rb.linearVelocity = new Vector2(dir * moveSpeed, 0);
-    }
-
-    float PredictBallPosition()
-    {
-        if (ball == null) return transform.position.x;
-
-        Rigidbody2D ballRb = ball.GetComponent<Rigidbody2D>();
-        Vector2 ballPos = ball.transform.position;
-        Vector2 ballVel = (ballRb != null ? ballRb.linearVelocity : Vector2.zero);
-
-        // Y hızı sıfıra çok yakınsa bölme yapma
-        if (Mathf.Approximately(ballVel.y, 0f))
-            return transform.position.x;
-
-        // AI paddle ile top arasındaki düşey mesafe / topun Y hızı
-        float timeToReach = (transform.position.y - ballPos.y) / Mathf.Abs(ballVel.y);
-
-        // Tahmini X pozisyonu
-        return ballPos.x + ballVel.x * timeToReach;
+        float dir = Mathf.Sign(dx);
+        rb.linearVelocity = new Vector2(dir * moveSpeed, 0f);
     }
 
     void HitBall()
     {
-        Rigidbody2D ballRb = ball.GetComponent<Rigidbody2D>();
-        if (ballRb == null) return;
+        Rigidbody2D bRb = ball.GetComponent<Rigidbody2D>();
+        if (bRb == null) return;
 
-        // Aşağı doğru bir vuruş yönü oluştur
-        Vector2 hitDir = new Vector2(
-            Random.Range(-0.4f, +0.4f),
-            -1f
-        ).normalized;
-
-        ballRb.linearVelocity = hitDir * hitForce;
-        Debug.Log("AI hit the ball!");
+        Vector2 dir = new Vector2(Random.Range(-0.4f, 0.4f), -1f).normalized;
+        bRb.linearVelocity = dir * hitForce;
     }
 
     void OnDrawGizmosSelected()
     {
-        // Hit range ve reaction distance görselleştir
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, hitRange);
-
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, reactionDistance);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, hitRange);
     }
 }
