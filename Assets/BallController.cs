@@ -4,20 +4,21 @@ using System.Collections;
 public class BallController : MonoBehaviour
 {
     [Header("Ball Settings")]
-    public float initialSpeed     = 5f;
-    public float maxSpeed         = 15f;
+    public float initialSpeed = 5f;
+    public float maxSpeed = 15f;
     public float bounceMultiplier = 1.05f;
-    public float wallBounceForce  = 0.9f;
+    public float wallBounceForce = 0.9f;
 
     [Header("Boundaries")]
-    public float leftWall    = -8f;
-    public float rightWall   =  8f;
-    public float topBoundary =  5f;
+    public float leftWall = -8f;
+    public float rightWall = 8f;
+    public float topBoundary = 5f;
     public float bottomBoundary = -5f;
 
-    Rigidbody2D      rb;
-    Vector2          lastVel;
+    Rigidbody2D rb;
+    Vector2 lastVel;
     SimpleGameManager gm;
+    bool gameStarted = false;
 
     void Awake()
     {
@@ -35,17 +36,18 @@ public class BallController : MonoBehaviour
             Debug.LogError("BallController: SimpleGameManager bulunamadı!", this);
 
         rb.linearVelocity = Vector2.zero;
-        ResetBall();
+        // ResetBall'u Start'ta çağırma, manuel olarak başlatılacak
     }
 
     void Update()
     {
         if (rb == null || Time.timeScale == 0f) return;
 
+        // Hız kontrolleri
         float speed = rb.linearVelocity.magnitude;
         if (speed > maxSpeed)
             rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
-        else if (speed < 1f && speed > 0.1f)
+        else if (speed < 1f && speed > 0.1f && gameStarted)
             rb.linearVelocity = rb.linearVelocity.normalized * 2f;
 
         lastVel = rb.linearVelocity;
@@ -54,9 +56,11 @@ public class BallController : MonoBehaviour
 
     public void StartGame()
     {
+        gameStarted = true;
         Vector2 dir = new Vector2(Random.Range(-0.5f, 0.5f),
-                                  Random.value < .5f ? -1f : 1f).normalized;
+                                  Random.value < 0.5f ? -1f : 1f).normalized;
         rb.linearVelocity = dir * initialSpeed;
+        Debug.Log($"Ball started with velocity: {rb.linearVelocity}");
     }
 
     void CheckBoundaries()
@@ -66,73 +70,98 @@ public class BallController : MonoBehaviour
         // Yan duvar sekmesi
         if (p.x <= leftWall || p.x >= rightWall)
         {
-            Vector2 v = lastVel;
+            Vector2 v = rb.linearVelocity; // lastVel yerine güncel hızı kullan
             v.x = -v.x * wallBounceForce;
             rb.linearVelocity = v;
-            p.x = Mathf.Clamp(p.x, leftWall + .1f, rightWall - .1f);
+            p.x = Mathf.Clamp(p.x, leftWall + 0.1f, rightWall - 0.1f);
             transform.position = p;
+            Debug.Log($"Wall bounce! New velocity: {rb.linearVelocity}");
         }
 
         // Üst-alt gol kontrolü
         if (p.y > topBoundary)
+        {
             OnGoal("Player");
+        }
         else if (p.y < bottomBoundary)
+        {
             OnGoal("AI");
+        }
     }
 
     void OnGoal(string who)
     {
+        gameStarted = false;
         rb.linearVelocity = Vector2.zero;
         if (gm != null)
         {
             if (who == "Player") gm.OnPlayerScore();
-            else                 gm.OnAIScore();
+            else gm.OnAIScore();
         }
         Debug.Log($"{who} scored!");
     }
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        if (rb == null || Time.timeScale == 0f) return;
+        if (rb == null || Time.timeScale == 0f || !gameStarted) return;
 
         if (col.gameObject.CompareTag("Player") || col.gameObject.CompareTag("AI"))
         {
-            Vector2 refl = Vector2.Reflect(lastVel, col.contacts[0].normal)
-                           * bounceMultiplier;
+            Vector2 currentVel = rb.linearVelocity; // lastVel yerine güncel hızı kullan
+            Vector2 refl = Vector2.Reflect(currentVel, col.contacts[0].normal) * bounceMultiplier;
 
+            // Paddle'ın hızını ekle
             var prb = col.gameObject.GetComponent<Rigidbody2D>();
-            if (prb != null) refl.x += prb.linearVelocity.x * 0.3f;
+            if (prb != null) 
+                refl.x += prb.linearVelocity.x * 0.3f;
 
+            // Minimum Y hızı garanti et
             if (Mathf.Abs(refl.y) < 2f) 
                 refl.y = Mathf.Sign(refl.y) * 2f;
 
+            // Çok dik açıları sınırla
             float ang = Mathf.Atan2(refl.y, refl.x) * Mathf.Rad2Deg;
             if (Mathf.Abs(ang) > 75f && Mathf.Abs(ang) < 105f)
             {
-                float cl = Mathf.Sign(ang) * 75f;
-                float m = refl.magnitude;
+                float clampedAngle = Mathf.Sign(ang) * 75f;
+                float magnitude = refl.magnitude;
                 refl = new Vector2(
-                    Mathf.Cos(cl * Mathf.Deg2Rad) * m, 
-                    Mathf.Sin(cl * Mathf.Deg2Rad) * m
+                    Mathf.Cos(clampedAngle * Mathf.Deg2Rad) * magnitude, 
+                    Mathf.Sin(clampedAngle * Mathf.Deg2Rad) * magnitude
                 );
             }
 
             rb.linearVelocity = refl;
-            Debug.Log("Ball hit " + col.gameObject.name);
+            Debug.Log($"Ball hit {col.gameObject.name}! New velocity: {rb.linearVelocity}");
         }
     }
 
     public void ResetBall()
     {
+        gameStarted = false;
         transform.position = Vector3.zero;
         rb.linearVelocity = Vector2.zero;
-        Invoke(nameof(StartGame), 0.5f);
+        
+        // Kısa bir gecikme sonrası oyunu başlat
+        Invoke(nameof(StartGame), 1f);
     }
 
     public void StopBall()
     {
+        gameStarted = false;
         if (rb == null) rb = GetComponent<Rigidbody2D>();
         if (rb != null) rb.linearVelocity = Vector2.zero;
+    }
+
+    // Debug için velocity'yi göster
+    void OnGUI()
+    {
+        if (Application.isEditor)
+        {
+            GUI.Label(new Rect(10, 10, 300, 20), $"Ball Velocity: {rb.linearVelocity}");
+            GUI.Label(new Rect(10, 30, 300, 20), $"Game Started: {gameStarted}");
+            GUI.Label(new Rect(10, 50, 300, 20), $"Time Scale: {Time.timeScale}");
+        }
     }
 
     void OnDrawGizmosSelected()
