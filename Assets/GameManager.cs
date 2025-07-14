@@ -24,11 +24,13 @@ public class SimpleGameManager : MonoBehaviour
         if (ball == null) ball = GameObject.FindWithTag("Ball");
         if (player == null) player = GameObject.FindWithTag("Player");
         if (aiPaddle == null) aiPaddle = GameObject.FindWithTag("AI");
-        
+
         // Eksik objeler için uyarı
         if (ball == null) Debug.LogError("Ball GameObject bulunamadı!");
         if (player == null) Debug.LogError("Player GameObject bulunamadı!");
         if (aiPaddle == null) Debug.LogError("AI Paddle GameObject bulunamadı!");
+        
+        StartGame();
     }
 
     public void StartGame()

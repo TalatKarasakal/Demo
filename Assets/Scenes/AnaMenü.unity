@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &15259854
+--- !u!1 &42426637
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,37 +127,37 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 15259856}
-  - component: {fileID: 15259855}
+  - component: {fileID: 42426639}
+  - component: {fileID: 42426638}
   m_Layer: 0
-  m_Name: UIManager
+  m_Name: MainMenuController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &15259855
+--- !u!114 &42426638
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 15259854}
+  m_GameObject: {fileID: 42426637}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 00d2a26411572410981114a793a7a726, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!4 &15259856
+--- !u!4 &42426639
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 15259854}
+  m_GameObject: {fileID: 42426637}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 281.04666, y: 247.79164, z: -2.4060438}
+  m_LocalPosition: {x: 530.34784, y: 325.09195, z: -8.89868}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -246,7 +246,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 15259855}
+      - m_Target: {fileID: 42426638}
         m_TargetAssemblyTypeName: MainMenuController, Assembly-CSharp
         m_MethodName: OnQuitButton
         m_Mode: 1
@@ -379,7 +379,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 15259855}
+      - m_Target: {fileID: 42426638}
         m_TargetAssemblyTypeName: MainMenuController, Assembly-CSharp
         m_MethodName: OnPlayButton
         m_Mode: 1
@@ -1255,4 +1255,4 @@ SceneRoots:
   - {fileID: 1113050485}
   - {fileID: 1266722556}
   - {fileID: 1338609772}
-  - {fileID: 15259856}
+  - {fileID: 42426639}
