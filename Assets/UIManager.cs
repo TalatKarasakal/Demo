@@ -20,37 +20,96 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
-        if (startButton != null)   startButton.onClick.AddListener(OnStart);
-        if (restartButton != null) restartButton.onClick.AddListener(OnRestart);
+        // Button event'lerini bağla
+        if (startButton != null) 
+        {
+            startButton.onClick.AddListener(OnStart);
+            Debug.Log("Start button listener added");
+        }
+        else
+        {
+            Debug.LogError("Start button is null!");
+        }
+
+        if (restartButton != null) 
+        {
+            restartButton.onClick.AddListener(OnRestart);
+            Debug.Log("Restart button listener added");
+        }
+
+        // GameManager kontrolü
+        if (gameManager == null)
+        {
+            gameManager = FindObjectOfType<SimpleGameManager>();
+            if (gameManager == null)
+                Debug.LogError("GameManager bulunamadı!");
+        }
+
         ShowMainMenu();
     }
 
     void Update()
     {
+        // Score güncellemesi
         if (gameManager != null)
         {
-            playerScoreText.text = gameManager.playerScore.ToString();
-            aiScoreText.text     = gameManager.aiScore.ToString();
+            if (playerScoreText != null)
+                playerScoreText.text = gameManager.playerScore.ToString();
+            if (aiScoreText != null)
+                aiScoreText.text = gameManager.aiScore.ToString();
         }
     }
 
     void OnStart()
     {
-        mainMenuPanel.SetActive(false);
-        gameUIPanel.SetActive(true);
+        Debug.Log("OnStart called!");
+        
+        if (mainMenuPanel != null)
+            mainMenuPanel.SetActive(false);
+        if (gameUIPanel != null)
+            gameUIPanel.SetActive(true);
+        
         Time.timeScale = 1f;
-        gameManager?.RestartGame();
+        
+        if (gameManager != null)
+        {
+            gameManager.StartGame();
+            Debug.Log("GameManager.StartGame() called");
+        }
+        else
+        {
+            Debug.LogError("GameManager is null in OnStart!");
+        }
     }
 
     void OnRestart()
     {
-        gameManager?.RestartGame();
+        Debug.Log("OnRestart called!");
+        if (gameManager != null)
+        {
+            gameManager.RestartGame();
+        }
     }
 
     void ShowMainMenu()
     {
-        mainMenuPanel.SetActive(true);
-        gameUIPanel.SetActive(false);
+        if (mainMenuPanel != null)
+            mainMenuPanel.SetActive(true);
+        if (gameUIPanel != null)
+            gameUIPanel.SetActive(false);
+        
         Time.timeScale = 0f;
+    }
+
+    // Test için buton
+    void OnGUI()
+    {
+        if (Application.isEditor)
+        {
+            if (GUI.Button(new Rect(10, 110, 100, 30), "Test Start"))
+            {
+                OnStart();
+            }
+        }
     }
 }
