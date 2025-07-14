@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class UIManager : MonoBehaviour
 {
@@ -26,12 +27,12 @@ public class UIManager : MonoBehaviour
     [Header("Game Over Panel")]
     public Button playAgainButton;
     public Button menuButton;
-    public Text winnerText;
+    public TMP_Text winnerText;
 
     [Header("Score Texts")]
-    public Text playerScoreText;
-    public Text aiScoreText;
-    public Text gameStatusText;
+    public TMP_Text playerScoreText;
+    public TMP_Text aiScoreText;
+    public TMP_Text gameStatusText;
 
     [Header("GameManager")]
     public SimpleGameManager gameManager;
