@@ -36,7 +36,6 @@ public class BallController : MonoBehaviour
             Debug.LogError("BallController: SimpleGameManager bulunamadı!", this);
 
         rb.linearVelocity = Vector2.zero;
-        // ResetBall'u Start'ta çağırma, manuel olarak başlatılacak
     }
 
     void Update()
@@ -60,7 +59,6 @@ public class BallController : MonoBehaviour
         Vector2 dir = new Vector2(Random.Range(-0.5f, 0.5f),
                                   Random.value < 0.5f ? -1f : 1f).normalized;
         rb.linearVelocity = dir * initialSpeed;
-        Debug.Log($"Ball started with velocity: {rb.linearVelocity}");
     }
 
     void CheckBoundaries()
@@ -70,22 +68,21 @@ public class BallController : MonoBehaviour
         // Yan duvar sekmesi
         if (p.x <= leftWall || p.x >= rightWall)
         {
-            Vector2 v = rb.linearVelocity; // lastVel yerine güncel hızı kullan
+            Vector2 v = rb.linearVelocity;
             v.x = -v.x * wallBounceForce;
             rb.linearVelocity = v;
             p.x = Mathf.Clamp(p.x, leftWall + 0.1f, rightWall - 0.1f);
             transform.position = p;
-            Debug.Log($"Wall bounce! New velocity: {rb.linearVelocity}");
         }
 
-        // Üst-alt gol kontrolü
+        // Üst-alt puan kontrolü
         if (p.y > topBoundary)
         {
-            OnGoal("Player");
+            OnGoal("Player"); // Top üstten çıktı = Player'a puan
         }
         else if (p.y < bottomBoundary)
         {
-            OnGoal("AI");
+            OnGoal("AI"); // Top alttan çıktı = AI'ya puan
         }
     }
 
@@ -98,7 +95,6 @@ public class BallController : MonoBehaviour
             if (who == "Player") gm.OnPlayerScore();
             else gm.OnAIScore();
         }
-        Debug.Log($"{who} scored!");
     }
 
     void OnCollisionEnter2D(Collision2D col)
@@ -107,7 +103,7 @@ public class BallController : MonoBehaviour
 
         if (col.gameObject.CompareTag("Player") || col.gameObject.CompareTag("AI"))
         {
-            Vector2 currentVel = rb.linearVelocity; // lastVel yerine güncel hızı kullan
+            Vector2 currentVel = rb.linearVelocity;
             Vector2 refl = Vector2.Reflect(currentVel, col.contacts[0].normal) * bounceMultiplier;
 
             // Paddle'ın hızını ekle
@@ -132,7 +128,6 @@ public class BallController : MonoBehaviour
             }
 
             rb.linearVelocity = refl;
-            Debug.Log($"Ball hit {col.gameObject.name}! New velocity: {rb.linearVelocity}");
         }
     }
 
@@ -151,17 +146,6 @@ public class BallController : MonoBehaviour
         gameStarted = false;
         if (rb == null) rb = GetComponent<Rigidbody2D>();
         if (rb != null) rb.linearVelocity = Vector2.zero;
-    }
-
-    // Debug için velocity'yi göster
-    void OnGUI()
-    {
-        if (Application.isEditor)
-        {
-            GUI.Label(new Rect(10, 10, 300, 20), $"Ball Velocity: {rb.linearVelocity}");
-            GUI.Label(new Rect(10, 30, 300, 20), $"Game Started: {gameStarted}");
-            GUI.Label(new Rect(10, 50, 300, 20), $"Time Scale: {Time.timeScale}");
-        }
     }
 
     void OnDrawGizmosSelected()

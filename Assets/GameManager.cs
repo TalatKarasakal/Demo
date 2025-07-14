@@ -13,13 +13,13 @@ public class SimpleGameManager : MonoBehaviour
     public GameObject player;
     public GameObject aiPaddle;
 
-    bool gameEnded;
-    bool gameStarted;
+    [Header("Game State")]
+    public bool gameEnded;
+    public bool gameStarted;
+    public bool gamePaused;
 
     void Start()
     {
-        Debug.Log($"GameManager Ready! First to {scoreToWin} wins!");
-        
         // GameObjects'leri otomatik bul
         if (ball == null) ball = GameObject.FindWithTag("Ball");
         if (player == null) player = GameObject.FindWithTag("Player");
@@ -31,17 +31,15 @@ public class SimpleGameManager : MonoBehaviour
         if (aiPaddle == null) Debug.LogError("AI Paddle GameObject bulunamadı!");
     }
 
-    // UI'dan çağrılacak
     public void StartGame()
     {
         if (gameStarted) return;
         
         gameStarted = true;
         gameEnded = false;
+        gamePaused = false;
         playerScore = 0;
         aiScore = 0;
-        
-        Debug.Log("Game Started!");
         
         ResetGameObjects();
         
@@ -52,6 +50,36 @@ public class SimpleGameManager : MonoBehaviour
         }
     }
 
+    public void PauseGame()
+    {
+        if (!gameStarted || gameEnded) return;
+        
+        gamePaused = !gamePaused;
+        Time.timeScale = gamePaused ? 0f : 1f;
+    }
+
+    public void ResumeGame()
+    {
+        if (!gameStarted || gameEnded) return;
+        
+        gamePaused = false;
+        Time.timeScale = 1f;
+    }
+
+    public void StopGame()
+    {
+        gameStarted = false;
+        gameEnded = true;
+        gamePaused = false;
+        Time.timeScale = 1f;
+        
+        var ballController = ball?.GetComponent<BallController>();
+        if (ballController != null)
+        {
+            ballController.StopBall();
+        }
+    }
+
     IEnumerator StartBallAfterDelay()
     {
         yield return new WaitForSeconds(1f);
@@ -59,7 +87,6 @@ public class SimpleGameManager : MonoBehaviour
         if (ballController != null)
         {
             ballController.StartGame();
-            Debug.Log("Ball started!");
         }
     }
 
@@ -73,11 +100,13 @@ public class SimpleGameManager : MonoBehaviour
         if (isPlayer) playerScore++; 
         else aiScore++;
         
-        Debug.Log($"Score: Player {playerScore} - AI {aiScore}");
-        
-        if (playerScore >= scoreToWin || aiScore >= scoreToWin)
+        if (playerScore >= scoreToWin)
         {
-            EndGame(isPlayer ? "Player" : "AI");
+            EndGame("Player");
+        }
+        else if (aiScore >= scoreToWin)
+        {
+            EndGame("AI");
         }
         else
         {
@@ -95,7 +124,6 @@ public class SimpleGameManager : MonoBehaviour
     {
         if (!gameEnded && ball != null)
         {
-            Debug.Log("Restarting round...");
             ball.transform.position = Vector3.zero;
             var ballController = ball.GetComponent<BallController>();
             if (ballController != null)
@@ -109,7 +137,6 @@ public class SimpleGameManager : MonoBehaviour
     {
         gameEnded = true;
         gameStarted = false;
-        Debug.Log($"=== GAME OVER: {winner} wins! ===");
         
         var ballController = ball?.GetComponent<BallController>();
         if (ballController != null)
@@ -120,10 +147,11 @@ public class SimpleGameManager : MonoBehaviour
 
     public void RestartGame()
     {
-        Debug.Log("Game Restarted!");
         playerScore = aiScore = 0;
         gameEnded = false;
         gameStarted = false;
+        gamePaused = false;
+        Time.timeScale = 1f;
         
         ResetGameObjects();
         StartGame();
@@ -157,19 +185,15 @@ public class SimpleGameManager : MonoBehaviour
         }
     }
 
-    // Debug için oyun durumunu göster
-    void OnGUI()
+    public string GetWinner()
     {
-        if (Application.isEditor)
-        {
-            GUI.Label(new Rect(10, 70, 300, 20), $"Game Started: {gameStarted}");
-            GUI.Label(new Rect(10, 90, 300, 20), $"Game Ended: {gameEnded}");
-            
-            // Manuel test butonu
-            if (GUI.Button(new Rect(10, 150, 100, 30), "Force Start"))
-            {
-                StartGame();
-            }
-        }
+        if (playerScore >= scoreToWin) return "Player";
+        if (aiScore >= scoreToWin) return "AI";
+        return "";
+    }
+
+    public bool IsGameActive()
+    {
+        return gameStarted && !gameEnded && !gamePaused;
     }
 }

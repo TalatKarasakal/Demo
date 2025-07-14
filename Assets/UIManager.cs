@@ -1,42 +1,43 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class UIManager : MonoBehaviour
 {
     [Header("Panels")]
     public GameObject mainMenuPanel;
     public GameObject gameUIPanel;
+    public GameObject pausePanel;
+    public GameObject gameOverPanel;
 
-    [Header("Buttons")]
+    [Header("Main Menu Buttons")]
     public Button startButton;
+    public Button quitButton;
+
+    [Header("Game UI Buttons")]
+    public Button pauseButton;
+    public Button mainMenuButton;
+
+    [Header("Pause Panel Buttons")]
+    public Button resumeButton;
     public Button restartButton;
+    public Button pauseMenuButton;
+
+    [Header("Game Over Panel")]
+    public Button playAgainButton;
+    public Button menuButton;
+    public Text winnerText;
 
     [Header("Score Texts")]
     public Text playerScoreText;
     public Text aiScoreText;
+    public Text gameStatusText;
 
     [Header("GameManager")]
     public SimpleGameManager gameManager;
 
     void Start()
     {
-        // Button event'lerini bağla
-        if (startButton != null) 
-        {
-            startButton.onClick.AddListener(OnStart);
-            Debug.Log("Start button listener added");
-        }
-        else
-        {
-            Debug.LogError("Start button is null!");
-        }
-
-        if (restartButton != null) 
-        {
-            restartButton.onClick.AddListener(OnRestart);
-            Debug.Log("Restart button listener added");
-        }
-
         // GameManager kontrolü
         if (gameManager == null)
         {
@@ -45,71 +46,170 @@ public class UIManager : MonoBehaviour
                 Debug.LogError("GameManager bulunamadı!");
         }
 
+        SetupButtons();
         ShowMainMenu();
+    }
+
+    void SetupButtons()
+    {
+        // Main Menu Buttons
+        if (startButton != null) startButton.onClick.AddListener(StartGame);
+        if (quitButton != null) quitButton.onClick.AddListener(QuitGame);
+
+        // Game UI Buttons
+        if (pauseButton != null) pauseButton.onClick.AddListener(PauseGame);
+        if (mainMenuButton != null) mainMenuButton.onClick.AddListener(GoToMainMenu);
+
+        // Pause Panel Buttons
+        if (resumeButton != null) resumeButton.onClick.AddListener(ResumeGame);
+        if (restartButton != null) restartButton.onClick.AddListener(RestartGame);
+        if (pauseMenuButton != null) pauseMenuButton.onClick.AddListener(GoToMainMenu);
+
+        // Game Over Panel Buttons
+        if (playAgainButton != null) playAgainButton.onClick.AddListener(RestartGame);
+        if (menuButton != null) menuButton.onClick.AddListener(GoToMainMenu);
     }
 
     void Update()
     {
-        // Score güncellemesi
-        if (gameManager != null)
+        // ESC tuşu ile pause
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (playerScoreText != null)
-                playerScoreText.text = gameManager.playerScore.ToString();
-            if (aiScoreText != null)
-                aiScoreText.text = gameManager.aiScore.ToString();
+            if (gameManager != null && gameManager.gameStarted && !gameManager.gameEnded)
+            {
+                PauseGame();
+            }
+        }
+
+        UpdateUI();
+    }
+
+    void UpdateUI()
+    {
+        if (gameManager == null) return;
+
+        // Score güncellemesi
+        if (playerScoreText != null)
+            playerScoreText.text = gameManager.playerScore.ToString();
+        if (aiScoreText != null)
+            aiScoreText.text = gameManager.aiScore.ToString();
+
+        // Game status güncellemesi
+        if (gameStatusText != null)
+        {
+            if (gameManager.gameEnded)
+            {
+                gameStatusText.text = "Game Over";
+            }
+            else if (gameManager.gamePaused)
+            {
+                gameStatusText.text = "Paused";
+            }
+            else if (gameManager.gameStarted)
+            {
+                gameStatusText.text = "Playing";
+            }
+            else
+            {
+                gameStatusText.text = "Ready";
+            }
+        }
+
+        // Game Over paneli kontrolü
+        if (gameManager.gameEnded && gameOverPanel != null && !gameOverPanel.activeSelf)
+        {
+            ShowGameOver();
         }
     }
 
-    void OnStart()
+    public void StartGame()
     {
-        Debug.Log("OnStart called!");
-        
-        if (mainMenuPanel != null)
-            mainMenuPanel.SetActive(false);
-        if (gameUIPanel != null)
-            gameUIPanel.SetActive(true);
+        if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+        if (gameUIPanel != null) gameUIPanel.SetActive(true);
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
         
         Time.timeScale = 1f;
         
         if (gameManager != null)
         {
             gameManager.StartGame();
-            Debug.Log("GameManager.StartGame() called");
-        }
-        else
-        {
-            Debug.LogError("GameManager is null in OnStart!");
         }
     }
 
-    void OnRestart()
+    public void PauseGame()
     {
-        Debug.Log("OnRestart called!");
+        if (gameManager != null)
+        {
+            gameManager.PauseGame();
+            
+            if (pausePanel != null)
+                pausePanel.SetActive(gameManager.gamePaused);
+        }
+    }
+
+    public void ResumeGame()
+    {
+        if (gameManager != null)
+        {
+            gameManager.ResumeGame();
+            
+            if (pausePanel != null)
+                pausePanel.SetActive(false);
+        }
+    }
+
+    public void RestartGame()
+    {
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        
         if (gameManager != null)
         {
             gameManager.RestartGame();
         }
     }
 
-    void ShowMainMenu()
+    public void GoToMainMenu()
     {
-        if (mainMenuPanel != null)
-            mainMenuPanel.SetActive(true);
-        if (gameUIPanel != null)
-            gameUIPanel.SetActive(false);
+        Time.timeScale = 1f;
         
-        Time.timeScale = 0f;
+        if (gameManager != null)
+        {
+            gameManager.StopGame();
+        }
+        
+        ShowMainMenu();
     }
 
-    // Test için buton
-    void OnGUI()
+    void ShowMainMenu()
     {
-        if (Application.isEditor)
+        if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
+        if (gameUIPanel != null) gameUIPanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+    }
+
+    void ShowGameOver()
+    {
+        if (gameOverPanel != null)
         {
-            if (GUI.Button(new Rect(10, 110, 100, 30), "Test Start"))
+            gameOverPanel.SetActive(true);
+            
+            if (winnerText != null && gameManager != null)
             {
-                OnStart();
+                string winner = gameManager.GetWinner();
+                winnerText.text = winner + " Wins!";
             }
         }
+    }
+
+    public void QuitGame()
+    {
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            Application.Quit();
+        #endif
     }
 }

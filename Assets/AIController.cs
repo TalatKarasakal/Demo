@@ -15,6 +15,7 @@ public class AIController : MonoBehaviour
 
     Rigidbody2D rb;
     GameObject  ball;
+    BallController ballController;
 
     void Awake()
     {
@@ -30,12 +31,18 @@ public class AIController : MonoBehaviour
         ball = GameObject.FindWithTag("Ball");
         if (ball == null)
             Debug.LogError("AIController: Top (tag=Ball) bulunamadı!", this);
+        else
+            ballController = ball.GetComponent<BallController>();
+            
+        if (ballController == null)
+            Debug.LogError("AIController: BallController bulunamadı!", this);
     }
 
     void Update()
     {
         if (rb == null || ball == null) return;
         HandleAI();
+        ClampPosition();
     }
 
     void HandleAI()
@@ -45,24 +52,25 @@ public class AIController : MonoBehaviour
         Rigidbody2D bRb = ball.GetComponent<Rigidbody2D>();
         Vector2 bVel   = bRb != null ? bRb.linearVelocity : Vector2.zero;
 
-        float dist           = Vector2.Distance(pos, bPos);
-        bool  comingTowards = bVel.y < 0f && bPos.y < pos.y;
-        bool  closeEnough   = dist < reactionDistance;
+        float dist = Vector2.Distance(pos, bPos);
+        
+        // AI'nın üst tarafta olduğunu varsayıyoruz (pozitif Y)
+        bool comingTowards = bVel.y > 0f && bPos.y < pos.y;
+        bool closeEnough = dist < reactionDistance;
 
         if (comingTowards && closeEnough)
         {
             // Hedef X tahmini + sapma
             float targetX = PredictBallX();
-            float err     = 1f - difficulty;
+            float err = (1f - difficulty) * 2f;
             targetX += Random.Range(-err, +err);
 
             MoveTo(targetX);
-            if (dist <= hitRange)
-                HitBall();
         }
         else
         {
-            MoveTo(0f);  // merkeze dön
+            // Merkeze dön
+            MoveTo(0f);
         }
     }
 
@@ -75,33 +83,58 @@ public class AIController : MonoBehaviour
         if (Mathf.Approximately(bVel.y, 0f))
             return transform.position.x;
 
-        float timeToAI = (transform.position.y - bPos.y) / Mathf.Abs(bVel.y);
-        return bPos.x + bVel.x * timeToAI;
+        float timeToAI = (transform.position.y - bPos.y) / bVel.y;
+        
+        if (timeToAI < 0)
+            return transform.position.x;
+
+        float predictedX = bPos.x + bVel.x * timeToAI;
+        
+        if (predictedX < boundaryLeft || predictedX > boundaryRight)
+        {
+            predictedX = Mathf.Clamp(predictedX, boundaryLeft, boundaryRight);
+        }
+        
+        return predictedX;
     }
 
-    /// <summary>
-    /// Basitçe MoveToTarget’i public ve kısaltılmış isimle expose ettik.
-    /// </summary>
     public void MoveTo(float targetX)
     {
-        float tx  = Mathf.Clamp(targetX, boundaryLeft, boundaryRight);
-        float dx  = tx - transform.position.x;
-        if (Mathf.Abs(dx) < 0.05f)
+        float tx = Mathf.Clamp(targetX, boundaryLeft, boundaryRight);
+        float dx = tx - transform.position.x;
+        
+        if (Mathf.Abs(dx) < 0.1f)
         {
-            rb.linearVelocity = Vector2.zero;
+            rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
             return;
         }
+        
         float dir = Mathf.Sign(dx);
-        rb.linearVelocity = new Vector2(dir * moveSpeed, 0f);
+        rb.linearVelocity = new Vector2(dir * moveSpeed, rb.linearVelocity.y);
     }
 
-    void HitBall()
+    void ClampPosition()
     {
-        Rigidbody2D bRb = ball.GetComponent<Rigidbody2D>();
-        if (bRb == null) return;
+        Vector3 p = transform.position;
+        p.x = Mathf.Clamp(p.x, boundaryLeft, boundaryRight);
+        transform.position = p;
+    }
 
-        Vector2 dir = new Vector2(Random.Range(-0.4f, 0.4f), -1f).normalized;
-        bRb.linearVelocity = dir * hitForce;
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ball"))
+        {
+            Vector2 ballVel = collision.rigidbody.linearVelocity;
+            Vector2 normal = collision.contacts[0].normal;
+            
+            Vector2 reflection = Vector2.Reflect(ballVel, normal);
+            reflection.x += rb.linearVelocity.x * 0.3f;
+            
+            if (reflection.magnitude < 5f)
+                reflection = reflection.normalized * 5f;
+                
+            collision.rigidbody.linearVelocity = reflection;
+        }
     }
 
     void OnDrawGizmosSelected()
@@ -110,5 +143,10 @@ public class AIController : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, reactionDistance);
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, hitRange);
+        
+        Gizmos.color = Color.green;
+        Vector3 leftBound = new Vector3(boundaryLeft, transform.position.y, 0);
+        Vector3 rightBound = new Vector3(boundaryRight, transform.position.y, 0);
+        Gizmos.DrawLine(leftBound, rightBound);
     }
 }
