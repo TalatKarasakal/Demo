@@ -3,8 +3,22 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuController : MonoBehaviour
 {
-    // Build Settings'te MainMenu=index0, Game=index1 olduğundan emin ol.
     private const int GameSceneIndex = 1;
+
+    public void OnEasyButton()
+    {
+        GameSettings.SelectedDifficulty = AIController.DifficultyLevel.Easy;
+    }
+
+    public void OnMediumButton()
+    {
+        GameSettings.SelectedDifficulty = AIController.DifficultyLevel.Medium;
+    }
+
+    public void OnHardButton()
+    {
+        GameSettings.SelectedDifficulty = AIController.DifficultyLevel.Hard;
+    }
 
     public void OnPlayButton()
     {
