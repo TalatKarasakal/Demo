@@ -39,7 +39,6 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
-        // GameManager kontrolü
         if (gameManager == null)
         {
             gameManager = FindObjectOfType<SimpleGameManager>();
@@ -53,27 +52,22 @@ public class UIManager : MonoBehaviour
 
     void SetupButtons()
     {
-        // Main Menu Buttons
         if (startButton != null) startButton.onClick.AddListener(StartGame);
         if (quitButton != null) quitButton.onClick.AddListener(QuitGame);
 
-        // Game UI Buttons
         if (pauseButton != null) pauseButton.onClick.AddListener(PauseGame);
         if (mainMenuButton != null) mainMenuButton.onClick.AddListener(GoToMainMenu);
 
-        // Pause Panel Buttons
         if (resumeButton != null) resumeButton.onClick.AddListener(ResumeGame);
         if (restartButton != null) restartButton.onClick.AddListener(RestartGame);
         if (pauseMenuButton != null) pauseMenuButton.onClick.AddListener(GoToMainMenu);
 
-        // Game Over Panel Buttons
         if (playAgainButton != null) playAgainButton.onClick.AddListener(RestartGame);
         if (menuButton != null) menuButton.onClick.AddListener(GoToMainMenu);
     }
 
     void Update()
     {
-        // ESC tuşu ile pause
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (gameManager != null && gameManager.gameStarted && !gameManager.gameEnded)
@@ -89,13 +83,11 @@ public class UIManager : MonoBehaviour
     {
         if (gameManager == null) return;
 
-        // Score güncellemesi
         if (playerScoreText != null)
             playerScoreText.text = gameManager.playerScore.ToString();
         if (aiScoreText != null)
             aiScoreText.text = gameManager.aiScore.ToString();
 
-        // Game status güncellemesi
         if (gameStatusText != null)
         {
             if (gameManager.gameEnded)
@@ -116,7 +108,6 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        // Game Over paneli kontrolü
         if (gameManager.gameEnded && gameOverPanel != null && !gameOverPanel.activeSelf)
         {
             ShowGameOver();
@@ -129,9 +120,9 @@ public class UIManager : MonoBehaviour
         if (gameUIPanel != null) gameUIPanel.SetActive(true);
         if (pausePanel != null) pausePanel.SetActive(false);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
-        
+
         Time.timeScale = 1f;
-        
+
         if (gameManager != null)
         {
             gameManager.StartGame();
@@ -143,7 +134,7 @@ public class UIManager : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.PauseGame();
-            
+
             if (pausePanel != null)
                 pausePanel.SetActive(gameManager.gamePaused);
         }
@@ -154,7 +145,7 @@ public class UIManager : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.ResumeGame();
-            
+
             if (pausePanel != null)
                 pausePanel.SetActive(false);
         }
@@ -164,7 +155,7 @@ public class UIManager : MonoBehaviour
     {
         if (pausePanel != null) pausePanel.SetActive(false);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
-        
+
         if (gameManager != null)
         {
             gameManager.RestartGame();
@@ -174,12 +165,13 @@ public class UIManager : MonoBehaviour
     public void GoToMainMenu()
     {
         Time.timeScale = 1f;
-        
+
         if (gameManager != null)
         {
             gameManager.StopGame();
+            gameManager.gameEnded = false; // Oyun kazandı mesajını engelle
         }
-        
+
         ShowMainMenu();
     }
 
@@ -196,7 +188,7 @@ public class UIManager : MonoBehaviour
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
-            
+
             if (winnerText != null && gameManager != null)
             {
                 string winner = gameManager.GetWinner();
@@ -207,10 +199,10 @@ public class UIManager : MonoBehaviour
 
     public void QuitGame()
     {
-        #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-        #else
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
             Application.Quit();
-        #endif
+#endif
     }
 }

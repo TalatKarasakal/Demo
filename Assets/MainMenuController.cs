@@ -3,8 +3,8 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuController : MonoBehaviour
 {
-    // Build Profiles/Settings’te MainMenu index=0, oyun index=1 olmalı
-    const int GameSceneIndex = 1;
+    // Build Settings'te MainMenu=index0, Game=index1 olduğundan emin ol.
+    private const int GameSceneIndex = 1;
 
     public void OnPlayButton()
     {
@@ -13,10 +13,10 @@ public class MainMenuController : MonoBehaviour
 
     public void OnQuitButton()
     {
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
-    #else
+#else
         Application.Quit();
-    #endif
+#endif
     }
 }

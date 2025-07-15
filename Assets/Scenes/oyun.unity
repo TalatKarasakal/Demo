@@ -793,12 +793,17 @@ MonoBehaviour:
   playerScore: 0
   aiScore: 0
   scoreToWin: 5
+  currentRound: 1
+  maxRounds: 5
   ball: {fileID: 1483278986}
   player: {fileID: 837633992}
   aiPaddle: {fileID: 578975469}
   gameEnded: 0
   gameStarted: 0
   gamePaused: 0
+  roundEnded: 0
+  roundEndDelay: 2
+  gameStartDelay: 1
 --- !u!4 &465654437
 Transform:
   m_ObjectHideFlags: 0
@@ -1266,7 +1271,7 @@ MonoBehaviour:
   reactionDistance: 8
   hitRange: 1
   hitForce: 10
-  difficulty: 0.8
+  currentDifficulty: 0
 --- !u!61 &578975473
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1321,7 +1326,7 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 578975469}
-  m_BodyType: 1
+  m_BodyType: 0
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
@@ -1339,7 +1344,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 4
+  m_Constraints: 6
 --- !u!1 &619507132
 GameObject:
   m_ObjectHideFlags: 0
@@ -3163,8 +3168,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   initialSpeed: 5
   maxSpeed: 15
+  speedIncrement: 1
+  speedIncrementTime: 3
   bounceMultiplier: 1.1
   wallBounceForce: 0.8
+  minYVelocity: 5
   leftWall: -8
   rightWall: 8
   topBoundary: 5

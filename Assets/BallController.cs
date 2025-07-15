@@ -4,10 +4,13 @@ using System.Collections;
 public class BallController : MonoBehaviour
 {
     [Header("Ball Settings")]
-    public float initialSpeed = 5f;
-    public float maxSpeed = 15f;
-    public float bounceMultiplier = 1.05f;
+    public float initialSpeed = 10f; // Başlangıç hızı artırıldı
+    public float maxSpeed = 20f;
+    public float speedIncrement = 1f; // Hız artışı artırıldı
+    public float speedIncrementTime = 3f; // Hızlanma süresi kısaltıldı
+    public float bounceMultiplier = 1.02f;
     public float wallBounceForce = 0.9f;
+    public float minYVelocity = 5f; // Y ekseni minimum hızı artırıldı
 
     [Header("Boundaries")]
     public float leftWall = -8f;
@@ -15,10 +18,14 @@ public class BallController : MonoBehaviour
     public float topBoundary = 5f;
     public float bottomBoundary = -5f;
 
-    Rigidbody2D rb;
-    Vector2 lastVel;
-    SimpleGameManager gm;
-    bool gameStarted = false;
+    private Rigidbody2D rb;
+    private Vector2 lastVel;
+    private SimpleGameManager gm;
+    private bool gameStarted = false;
+    private float currentSpeed;
+    private Coroutine speedIncreaseCoroutine;
+    private float stuckTimer = 0f;
+    private const float STUCK_TIME_LIMIT = 1f; // Donma limiti düşürüldü
 
     void Awake()
     {
@@ -31,58 +38,129 @@ public class BallController : MonoBehaviour
 
     void Start()
     {
+        Camera cam = Camera.main;
+        if (cam != null && cam.orthographic)
+        {
+            float ballRadius = GetComponent<CircleCollider2D>().radius;
+            float halfHeight = cam.orthographicSize;
+            float halfWidth = halfHeight * cam.aspect;
+            leftWall = -halfWidth + ballRadius;
+            rightWall = halfWidth - ballRadius;
+            topBoundary = halfHeight - ballRadius;
+            bottomBoundary = -halfHeight + ballRadius;
+        }
         gm = Object.FindAnyObjectByType<SimpleGameManager>();
         if (gm == null)
             Debug.LogError("BallController: SimpleGameManager bulunamadı!", this);
 
         rb.linearVelocity = Vector2.zero;
+        currentSpeed = initialSpeed;
     }
 
     void Update()
     {
         if (rb == null || Time.timeScale == 0f) return;
 
-        // Hız kontrolleri
-        float speed = rb.linearVelocity.magnitude;
-        if (speed > maxSpeed)
-            rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
-        else if (speed < 1f && speed > 0.1f && gameStarted)
-            rb.linearVelocity = rb.linearVelocity.normalized * 2f;
-
+        CheckStuck();
+        ControlSpeed();
         lastVel = rb.linearVelocity;
         CheckBoundaries();
+    }
+
+    void CheckStuck()
+    {
+        if (!gameStarted) return;
+
+        float speed = rb.linearVelocity.magnitude;
+        if (speed < 1f)
+        {
+            stuckTimer += Time.deltaTime;
+            if (stuckTimer >= STUCK_TIME_LIMIT)
+            {
+                Vector2 randomDir = new Vector2(Random.Range(-0.5f, 0.5f), Random.value < 0.5f ? -1f : 1f).normalized;
+                rb.linearVelocity = randomDir * currentSpeed;
+                stuckTimer = 0f;
+            }
+        }
+        else
+        {
+            stuckTimer = 0f;
+        }
+    }
+
+    void ControlSpeed()
+    {
+        float speed = rb.linearVelocity.magnitude;
+
+        if (speed > maxSpeed)
+        {
+            rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
+        }
+        else if (speed < currentSpeed * 0.8f && gameStarted)
+        {
+            rb.linearVelocity = rb.linearVelocity.normalized * currentSpeed;
+        }
+
+        if (gameStarted && Mathf.Abs(rb.linearVelocity.y) < minYVelocity)
+        {
+            float newY = Mathf.Sign(rb.linearVelocity.y) * minYVelocity;
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, newY);
+        }
     }
 
     public void StartGame()
     {
         gameStarted = true;
-        Vector2 dir = new Vector2(Random.Range(-0.5f, 0.5f),
-                                  Random.value < 0.5f ? -1f : 1f).normalized;
-        rb.linearVelocity = dir * initialSpeed;
+        currentSpeed = initialSpeed;
+        Vector2 dir = new Vector2(Random.Range(-0.5f, 0.5f), Random.value < 0.5f ? -1f : 1f).normalized;
+        rb.linearVelocity = dir * currentSpeed;
+
+        if (speedIncreaseCoroutine != null)
+            StopCoroutine(speedIncreaseCoroutine);
+        speedIncreaseCoroutine = StartCoroutine(IncreaseSpeedOverTime());
+    }
+
+    IEnumerator IncreaseSpeedOverTime()
+    {
+        while (gameStarted && currentSpeed < maxSpeed)
+        {
+            yield return new WaitForSeconds(speedIncrementTime);
+            if (gameStarted)
+            {
+                currentSpeed = Mathf.Min(currentSpeed + speedIncrement, maxSpeed);
+            }
+        }
     }
 
     void CheckBoundaries()
     {
         Vector3 p = transform.position;
 
-        // Yan duvar sekmesi
-        if (p.x <= leftWall || p.x >= rightWall)
+        // Yan duvar sekmesi düzeltildi
+        if (p.x <= leftWall)
         {
             Vector2 v = rb.linearVelocity;
-            v.x = -v.x * wallBounceForce;
+            v.x = Mathf.Abs(v.x) * wallBounceForce;
             rb.linearVelocity = v;
-            p.x = Mathf.Clamp(p.x, leftWall + 0.1f, rightWall - 0.1f);
+            p.x = leftWall + 0.1f;
+            transform.position = p;
+        }
+        else if (p.x >= rightWall)
+        {
+            Vector2 v = rb.linearVelocity;
+            v.x = -Mathf.Abs(v.x) * wallBounceForce;
+            rb.linearVelocity = v;
+            p.x = rightWall - 0.1f;
             transform.position = p;
         }
 
-        // Üst-alt puan kontrolü
         if (p.y > topBoundary)
         {
-            OnGoal("Player"); // Top üstten çıktı = Player'a puan
+            OnGoal("Player");
         }
         else if (p.y < bottomBoundary)
         {
-            OnGoal("AI"); // Top alttan çıktı = AI'ya puan
+            OnGoal("AI");
         }
     }
 
@@ -90,6 +168,13 @@ public class BallController : MonoBehaviour
     {
         gameStarted = false;
         rb.linearVelocity = Vector2.zero;
+
+        if (speedIncreaseCoroutine != null)
+        {
+            StopCoroutine(speedIncreaseCoroutine);
+            speedIncreaseCoroutine = null;
+        }
+
         if (gm != null)
         {
             if (who == "Player") gm.OnPlayerScore();
@@ -99,36 +184,32 @@ public class BallController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        if (rb == null || Time.timeScale == 0f || !gameStarted) return;
+        if (!gameStarted) return;
 
+        // Sadece paddle çarpışmaları
         if (col.gameObject.CompareTag("Player") || col.gameObject.CompareTag("AI"))
         {
-            Vector2 currentVel = rb.linearVelocity;
-            Vector2 refl = Vector2.Reflect(currentVel, col.contacts[0].normal) * bounceMultiplier;
+            Vector2 incoming = lastVel;  // son velocity
+            Vector2 normal = col.contacts[0].normal;
+            Vector2 reflect = Vector2.Reflect(incoming, normal) * bounceMultiplier;
 
-            // Paddle'ın hızını ekle
-            var prb = col.gameObject.GetComponent<Rigidbody2D>();
-            if (prb != null) 
-                refl.x += prb.linearVelocity.x * 0.3f;
+            // Paddle hareketinin x etkisi
+            Rigidbody2D prb = col.rigidbody;
+            if (prb != null)
+                reflect.x += prb.linearVelocity.x * 0.5f;
 
-            // Minimum Y hızı garanti et
-            if (Mathf.Abs(refl.y) < 2f) 
-                refl.y = Mathf.Sign(refl.y) * 2f;
+            // Y eksenini mutlaka minYVelocity seviyesine çek
+            if (Mathf.Abs(reflect.y) < minYVelocity)
+                reflect.y = Mathf.Sign(reflect.y) * minYVelocity;
 
-            // Çok dik açıları sınırla
-            float ang = Mathf.Atan2(refl.y, refl.x) * Mathf.Rad2Deg;
-            if (Mathf.Abs(ang) > 75f && Mathf.Abs(ang) < 105f)
-            {
-                float clampedAngle = Mathf.Sign(ang) * 75f;
-                float magnitude = refl.magnitude;
-                refl = new Vector2(
-                    Mathf.Cos(clampedAngle * Mathf.Deg2Rad) * magnitude, 
-                    Mathf.Sin(clampedAngle * Mathf.Deg2Rad) * magnitude
-                );
-            }
+            // Hızın aşırı düşmemesi için minimum toplam magnitude
+            if (reflect.magnitude < currentSpeed * 0.5f)
+                reflect = reflect.normalized * (currentSpeed * 0.5f);
 
-            rb.linearVelocity = refl;
+            rb.linearVelocity = reflect;
+            return;
         }
+
     }
 
     public void ResetBall()
@@ -136,8 +217,15 @@ public class BallController : MonoBehaviour
         gameStarted = false;
         transform.position = Vector3.zero;
         rb.linearVelocity = Vector2.zero;
-        
-        // Kısa bir gecikme sonrası oyunu başlat
+        currentSpeed = initialSpeed;
+        stuckTimer = 0f;
+
+        if (speedIncreaseCoroutine != null)
+        {
+            StopCoroutine(speedIncreaseCoroutine);
+            speedIncreaseCoroutine = null;
+        }
+
         Invoke(nameof(StartGame), 1f);
     }
 
@@ -146,6 +234,12 @@ public class BallController : MonoBehaviour
         gameStarted = false;
         if (rb == null) rb = GetComponent<Rigidbody2D>();
         if (rb != null) rb.linearVelocity = Vector2.zero;
+
+        if (speedIncreaseCoroutine != null)
+        {
+            StopCoroutine(speedIncreaseCoroutine);
+            speedIncreaseCoroutine = null;
+        }
     }
 
     void OnDrawGizmosSelected()

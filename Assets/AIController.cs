@@ -2,151 +2,141 @@ using UnityEngine;
 
 public class AIController : MonoBehaviour
 {
-    [Header("Movement Settings")]
-    public float moveSpeed       = 4f;
-    public float boundaryLeft    = -7f;
-    public float boundaryRight   = 7f;
+    public enum DifficultyLevel { Easy, Medium, Hard }
 
-    [Header("AI Settings")]
-    public float reactionDistance = 8f;
-    public float hitRange         = 1f;
-    public float hitForce         = 10f;
-    [Range(0f,1f)] public float difficulty = 0.8f;
+    [Header("Zorluk Seviyesi")]
+    public DifficultyLevel currentDifficulty = DifficultyLevel.Medium;
+
+    [Header("Hareket Ayarları")]
+    public float moveSpeed       = 6f;
+    public float boundaryLeft    = -7f;
+    public float boundaryRight   =  7f;
+
+    [Header("Algılama")]
+    public float reactionDistance = 10f;
+
+    [Header("Hata Payı (Ne kadar sapacak)")]
+    public float errorEasy    =  2f;
+    public float errorMedium  =  1f;
+    public float errorHard    =  0.3f;
 
     Rigidbody2D rb;
-    GameObject  ball;
-    BallController ballController;
+    GameObject   ball;
+    Rigidbody2D ballRb;
+    float        homeX;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         if (rb == null)
-            Debug.LogError("AIController: Rigidbody2D bulunamadı!", this);
+            Debug.LogError("AIController: Rigidbody2D eksik!", this);
         else
             rb.freezeRotation = true;
+
+        homeX = transform.position.x;
     }
 
     void Start()
     {
         ball = GameObject.FindWithTag("Ball");
         if (ball == null)
-            Debug.LogError("AIController: Top (tag=Ball) bulunamadı!", this);
-        else
-            ballController = ball.GetComponent<BallController>();
-            
-        if (ballController == null)
-            Debug.LogError("AIController: BallController bulunamadı!", this);
+        {
+            Debug.LogError("AIController: Tag=\"Ball\" objesi bulunamadı!", this);
+            return;
+        }
+
+        ballRb = ball.GetComponent<Rigidbody2D>();
+        if (ballRb == null)
+            Debug.LogError("AIController: Ball'ın Rigidbody2D'si eksik!", this);
     }
 
     void Update()
     {
-        if (rb == null || ball == null) return;
-        HandleAI();
-        ClampPosition();
-    }
+        if (ballRb == null) return;
 
-    void HandleAI()
-    {
-        Vector2 pos    = transform.position;
-        Vector2 bPos   = ball.transform.position;
-        Rigidbody2D bRb = ball.GetComponent<Rigidbody2D>();
-        Vector2 bVel   = bRb != null ? bRb.linearVelocity : Vector2.zero;
-
-        float dist = Vector2.Distance(pos, bPos);
-        
-        // AI'nın üst tarafta olduğunu varsayıyoruz (pozitif Y)
-        bool comingTowards = bVel.y > 0f && bPos.y < pos.y;
-        bool closeEnough = dist < reactionDistance;
-
-        if (comingTowards && closeEnough)
+        // Sadece top bize doğru geliyorsa (y > 0) ve yeterince yakınsa takip et
+        if (ballRb.linearVelocity.y > 0f &&
+            Vector2.Distance(transform.position, ball.transform.position) < reactionDistance)
         {
-            // Hedef X tahmini + sapma
-            float targetX = PredictBallX();
-            float err = (1f - difficulty) * 2f;
-            targetX += Random.Range(-err, +err);
-
-            MoveTo(targetX);
+            TrackBall();
         }
         else
         {
-            // Merkeze dön
-            MoveTo(0f);
+            ReturnHome();
         }
+
+        ClampPosition();
     }
 
-    float PredictBallX()
+    void TrackBall()
     {
-        Rigidbody2D bRb = ball.GetComponent<Rigidbody2D>();
-        Vector2 bPos = ball.transform.position;
-        Vector2 bVel = bRb != null ? bRb.linearVelocity : Vector2.zero;
+        // Topla aynı düşey düzlemde ne kadar sürede kesişiriz?
+        float dy = transform.position.y - ball.transform.position.y;
+        float vy = ballRb.linearVelocity.y;
+        if (vy <= 0) return; // aşağıya iniyorsa vazgeç
 
-        if (Mathf.Approximately(bVel.y, 0f))
-            return transform.position.x;
+        float t = dy / vy;
+        if (t <= 0) return;
 
-        float timeToAI = (transform.position.y - bPos.y) / bVel.y;
-        
-        if (timeToAI < 0)
-            return transform.position.x;
+        // Tahmini X
+        float targetX = ball.transform.position.x + ballRb.linearVelocity.x * t;
 
-        float predictedX = bPos.x + bVel.x * timeToAI;
-        
-        if (predictedX < boundaryLeft || predictedX > boundaryRight)
+        // Hata payını zorluğa göre seç
+        float err = currentDifficulty switch
         {
-            predictedX = Mathf.Clamp(predictedX, boundaryLeft, boundaryRight);
-        }
-        
-        return predictedX;
+            DifficultyLevel.Easy   => errorEasy,
+            DifficultyLevel.Medium => errorMedium,
+            _                      => errorHard,
+        };
+        targetX += Random.Range(-err, err);
+
+        MoveTo(targetX);
     }
 
-    public void MoveTo(float targetX)
+    void ReturnHome()
     {
-        float tx = Mathf.Clamp(targetX, boundaryLeft, boundaryRight);
-        float dx = tx - transform.position.x;
-        
-        if (Mathf.Abs(dx) < 0.1f)
+        MoveTo(homeX);
+    }
+
+    void MoveTo(float x)
+    {
+        x = Mathf.Clamp(x, boundaryLeft, boundaryRight);
+        float dx = x - transform.position.x;
+        if (Mathf.Abs(dx) < 0.2f)
         {
             rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
-            return;
         }
-        
-        float dir = Mathf.Sign(dx);
-        rb.linearVelocity = new Vector2(dir * moveSpeed, rb.linearVelocity.y);
+        else
+        {
+            float dir = Mathf.Sign(dx);
+            rb.linearVelocity = new Vector2(dir * moveSpeed, rb.linearVelocity.y);
+        }
     }
 
     void ClampPosition()
     {
-        Vector3 p = transform.position;
+        var p = transform.position;
         p.x = Mathf.Clamp(p.x, boundaryLeft, boundaryRight);
         transform.position = p;
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
+    /// <summary>
+    /// Dışarıdan zorluk değiştirmek istersen çağır:
+    /// aiController.SetDifficulty(AIController.DifficultyLevel.Hard);
+    /// </summary>
+    public void SetDifficulty(DifficultyLevel lvl)
     {
-        if (collision.gameObject.CompareTag("Ball"))
-        {
-            Vector2 ballVel = collision.rigidbody.linearVelocity;
-            Vector2 normal = collision.contacts[0].normal;
-            
-            Vector2 reflection = Vector2.Reflect(ballVel, normal);
-            reflection.x += rb.linearVelocity.x * 0.3f;
-            
-            if (reflection.magnitude < 5f)
-                reflection = reflection.normalized * 5f;
-                
-            collision.rigidbody.linearVelocity = reflection;
-        }
+        currentDifficulty = lvl;
     }
 
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, reactionDistance);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, hitRange);
-        
         Gizmos.color = Color.green;
-        Vector3 leftBound = new Vector3(boundaryLeft, transform.position.y, 0);
-        Vector3 rightBound = new Vector3(boundaryRight, transform.position.y, 0);
-        Gizmos.DrawLine(leftBound, rightBound);
+        Gizmos.DrawLine(
+            new Vector3(boundaryLeft, transform.position.y, 0),
+            new Vector3(boundaryRight, transform.position.y, 0)
+        );
     }
 }
