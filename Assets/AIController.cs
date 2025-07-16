@@ -8,53 +8,48 @@ public class AIController : MonoBehaviour
     public DifficultyLevel currentDifficulty = DifficultyLevel.Medium;
 
     [Header("Hareket Ayarları")]
-    public float moveSpeed       = 6f;
-    public float boundaryLeft    = -7f;
-    public float boundaryRight   =  7f;
+    public float moveSpeed = 6f;
+    public float boundaryLeft = -7f;
+    public float boundaryRight = 7f;
 
     [Header("Algılama")]
     public float reactionDistance = 10f;
 
-    [Header("Hata Payı (Ne kadar sapacak)")]
-    public float errorEasy    =  2f;
-    public float errorMedium  =  1f;
-    public float errorHard    =  0.3f;
+    [Header("Hata Payı (sapma ±)")]
+    public float errorEasy = 2f;
+    public float errorMedium = 1f;
+    public float errorHard = 0.3f;
 
     Rigidbody2D rb;
-    GameObject   ball;
+    GameObject ball;
     Rigidbody2D ballRb;
-    float        homeX;
+    float homeX;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        if (rb == null)
-            Debug.LogError("AIController: Rigidbody2D eksik!", this);
-        else
+        if (rb != null)
             rb.freezeRotation = true;
-
         homeX = transform.position.x;
     }
 
     void Start()
     {
-        ball = GameObject.FindWithTag("Ball");
-        if (ball == null)
-        {
-            Debug.LogError("AIController: Tag=\"Ball\" objesi bulunamadı!", this);
-            return;
-        }
+        // Menüden seçilen zorluğu al
+        currentDifficulty = GameSettings.SelectedDifficulty;
 
-        ballRb = ball.GetComponent<Rigidbody2D>();
-        if (ballRb == null)
-            Debug.LogError("AIController: Ball'ın Rigidbody2D'si eksik!", this);
+        ball = GameObject.FindWithTag("Ball");
+        if (ball != null)
+            ballRb = ball.GetComponent<Rigidbody2D>();
+        else
+            Debug.LogError("AIController: Tag=\"Ball\" objesi bulunamadı!", this);
     }
 
     void Update()
     {
         if (ballRb == null) return;
 
-        // Sadece top bize doğru geliyorsa (y > 0) ve yeterince yakınsa takip et
+        // Top bize doğru geliyorsa ve belli mesafedeysek takip et
         if (ballRb.linearVelocity.y > 0f &&
             Vector2.Distance(transform.position, ball.transform.position) < reactionDistance)
         {
@@ -70,23 +65,24 @@ public class AIController : MonoBehaviour
 
     void TrackBall()
     {
-        // Topla aynı düşey düzlemde ne kadar sürede kesişiriz?
+        // Topla aynı düşey çizgide ne kadar sürede kesişiriz?
         float dy = transform.position.y - ball.transform.position.y;
         float vy = ballRb.linearVelocity.y;
-        if (vy <= 0) return; // aşağıya iniyorsa vazgeç
+        if (vy <= 0f) return;
 
         float t = dy / vy;
-        if (t <= 0) return;
+        if (t <= 0f) return;
 
-        // Tahmini X
+        // İleriye doğru tahmini X
         float targetX = ball.transform.position.x + ballRb.linearVelocity.x * t;
 
-        // Hata payını zorluğa göre seç
+        // Sapma miktarını zorluğa göre belirle
         float err = currentDifficulty switch
         {
-            DifficultyLevel.Easy   => errorEasy,
+            DifficultyLevel.Easy => errorEasy,
             DifficultyLevel.Medium => errorMedium,
-            _                      => errorHard,
+            DifficultyLevel.Hard => errorHard,
+            _ => errorMedium
         };
         targetX += Random.Range(-err, err);
 
@@ -121,8 +117,8 @@ public class AIController : MonoBehaviour
     }
 
     /// <summary>
-    /// Dışarıdan zorluk değiştirmek istersen çağır:
-    /// aiController.SetDifficulty(AIController.DifficultyLevel.Hard);
+    /// Dışardan zorluk seviyesi değiştirmek istersen çağırabilirsin:
+    ///     aiController.SetDifficulty(AIController.DifficultyLevel.Hard);
     /// </summary>
     public void SetDifficulty(DifficultyLevel lvl)
     {
@@ -135,8 +131,8 @@ public class AIController : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, reactionDistance);
         Gizmos.color = Color.green;
         Gizmos.DrawLine(
-            new Vector3(boundaryLeft, transform.position.y, 0),
-            new Vector3(boundaryRight, transform.position.y, 0)
+            new Vector3(boundaryLeft, transform.position.y, 0f),
+            new Vector3(boundaryRight, transform.position.y, 0f)
         );
     }
 }
