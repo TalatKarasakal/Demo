@@ -12,13 +12,13 @@ public class AIController : MonoBehaviour
     public float boundaryLeft = -7f;
     public float boundaryRight = 7f;
 
-    [Header("Algılama")]
+    [Header("Algılama Mesafesi")]
     public float reactionDistance = 10f;
 
-    [Header("Hata Payı (sapma ±)")]
-    public float errorEasy = 2f;
-    public float errorMedium = 1f;
-    public float errorHard = 0.3f;
+    [Header("Sapma Payı (± hata)")]
+    public float errorEasy = 3f;   // easy'de büyük sapma
+    public float errorMedium = 1.5f; // medium'da orta sapma
+    public float errorHard = 0.3f; // hard'da neredeyse hassas
 
     Rigidbody2D rb;
     GameObject ball;
@@ -28,8 +28,7 @@ public class AIController : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        if (rb != null)
-            rb.freezeRotation = true;
+        if (rb != null) rb.freezeRotation = true;
         homeX = transform.position.x;
     }
 
@@ -49,23 +48,19 @@ public class AIController : MonoBehaviour
     {
         if (ballRb == null) return;
 
-        // Top bize doğru geliyorsa ve belli mesafedeysek takip et
-        if (ballRb.linearVelocity.y > 0f &&
-            Vector2.Distance(transform.position, ball.transform.position) < reactionDistance)
-        {
+        // Top bize doğru geliyorsa ve mesafe uygunsa takip et
+        float dist = Vector2.Distance(transform.position, ball.transform.position);
+        if (ballRb.linearVelocity.y > 0f && dist < reactionDistance)
             TrackBall();
-        }
         else
-        {
             ReturnHome();
-        }
 
         ClampPosition();
     }
 
     void TrackBall()
     {
-        // Topla aynı düşey çizgide ne kadar sürede kesişiriz?
+        // düşeyde kesişme süresi
         float dy = transform.position.y - ball.transform.position.y;
         float vy = ballRb.linearVelocity.y;
         if (vy <= 0f) return;
@@ -73,10 +68,10 @@ public class AIController : MonoBehaviour
         float t = dy / vy;
         if (t <= 0f) return;
 
-        // İleriye doğru tahmini X
+        // ileriye tahmin
         float targetX = ball.transform.position.x + ballRb.linearVelocity.x * t;
 
-        // Sapma miktarını zorluğa göre belirle
+        // hatayı zorluğa göre seç
         float err = currentDifficulty switch
         {
             DifficultyLevel.Easy => errorEasy,
@@ -117,8 +112,8 @@ public class AIController : MonoBehaviour
     }
 
     /// <summary>
-    /// Dışardan zorluk seviyesi değiştirmek istersen çağırabilirsin:
-    ///     aiController.SetDifficulty(AIController.DifficultyLevel.Hard);
+    /// İstersen runtime’da da zorluk değiştir:
+    /// aiController.SetDifficulty(DifficultyLevel.Hard);
     /// </summary>
     public void SetDifficulty(DifficultyLevel lvl)
     {
