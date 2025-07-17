@@ -164,15 +164,15 @@ public class UIManager : MonoBehaviour
 
     public void GoToMainMenu()
     {
+        // Eğer oyunu durdurduysanız zamanı geri açın
         Time.timeScale = 1f;
 
-        if (gameManager != null)
-        {
-            gameManager.StopGame();
-            gameManager.gameEnded = false; // Oyun kazandı mesajını engelle
-        }
+        // Oyun içi değerleri sıfırlamak istiyorsanız (opsiyonel)
+        gameManager?.StopGame();
+        gameManager.gameEnded = false;
 
-        ShowMainMenu();
+        // Ana Menü sahnesine dön
+        SceneManager.LoadScene(0); // 0 yerine MainMenu sahnenizin Build Index’ini veya adını kullanabilirsiniz
     }
 
     void ShowMainMenu()
