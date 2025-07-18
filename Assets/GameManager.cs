@@ -1,5 +1,8 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using System.Collections;
+// using UnityEngine.UI;
+using TMPro;
 
 public class SimpleGameManager : MonoBehaviour
 {
@@ -27,6 +30,15 @@ public class SimpleGameManager : MonoBehaviour
     [Header("Round Management")]
     public float roundEndDelay  = 2f;
     public float gameStartDelay = 1f;
+
+    [Header("UI Elements")]
+    public TextMeshProUGUI playerScoreText;
+    public TextMeshProUGUI aiScoreText;
+
+    // Difficulty selection
+    public enum Difficulty { Easy, Medium, Hard }
+    private Difficulty selectedDifficulty = Difficulty.Medium;
+    public Difficulty CurrentDifficulty => selectedDifficulty;
 
     void Start()
     {
@@ -57,6 +69,7 @@ public class SimpleGameManager : MonoBehaviour
         playerScore = 0;
         aiScore     = 0;
         currentRound= 1;
+        UpdateScoreUI();
         Time.timeScale = 1f;
 
         ResetGameObjects();
@@ -122,11 +135,13 @@ public class SimpleGameManager : MonoBehaviour
         if (isPlayer)
         {
             playerScore++;
+            UpdateScoreUI();
             Debug.Log($"Player scored! Score: {playerScore}-{aiScore}");
         }
         else
         {
             aiScore++;
+            UpdateScoreUI();
             Debug.Log($"AI scored! Score: {playerScore}-{aiScore}");
         }
 
@@ -214,6 +229,14 @@ public class SimpleGameManager : MonoBehaviour
         }
     }
 
+    private void UpdateScoreUI()
+    {
+        if (playerScoreText != null)
+            playerScoreText.text = playerScore.ToString();
+        if (aiScoreText != null)
+            aiScoreText.text = aiScore.ToString();
+    }
+
     public string GetWinner()
     {
         if (playerScore >= scoreToWin) return "Player";
@@ -231,6 +254,15 @@ public class SimpleGameManager : MonoBehaviour
             aiController.SetDifficulty(diff);
             Debug.Log($"AI Difficulty set to: {diff}");
         }
+    }
+
+    /// <summary>
+    /// Called from menu buttons to set difficulty and load the game scene.
+    /// </summary>
+    public void SetDifficultyAndStart(Difficulty diff, string sceneName)
+    {
+        selectedDifficulty = diff;
+        SceneManager.LoadScene(sceneName);
     }
 
     public string GetScoreText() => $"{playerScore} - {aiScore}";
