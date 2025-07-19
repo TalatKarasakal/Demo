@@ -8,7 +8,7 @@ public class SimpleGameManager : MonoBehaviour
     [Header("Score Settings")]
     public int playerScore;
     public int aiScore;
-    public int scoreToWin = 3; // Kaç puan kazanınca biter
+    public int scoreToWin = 5; // Kaç puan kazanınca biter
     public int currentRound = 1;
     public int maxRounds = 5; // Best of 5 (isteğe bağlı)
 
@@ -234,7 +234,7 @@ public class SimpleGameManager : MonoBehaviour
             if (rb != null) rb.linearVelocity = Vector2.zero;
         }
 
-        // Topu reset et
+        // Topu sıfırla
         if (ball != null)
         {
             ball.transform.position = Vector3.zero;
