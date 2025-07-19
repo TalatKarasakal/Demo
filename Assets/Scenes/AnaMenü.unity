@@ -148,6 +148,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00d2a26411572410981114a793a7a726, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  easyButton: {fileID: 0}
+  mediumButton: {fileID: 0}
+  hardButton: {fileID: 0}
+  marker: {fileID: 0}
+  markerOffset: {x: 120, y: 0}
 --- !u!4 &42426639
 Transform:
   m_ObjectHideFlags: 0
@@ -1307,6 +1312,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00d2a26411572410981114a793a7a726, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  easyButton: {fileID: 0}
+  mediumButton: {fileID: 0}
+  hardButton: {fileID: 0}
+  marker: {fileID: 0}
+  markerOffset: {x: 120, y: 0}
 --- !u!1 &1338609769
 GameObject:
   m_ObjectHideFlags: 0
