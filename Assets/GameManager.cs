@@ -185,10 +185,12 @@ public class SimpleGameManager : MonoBehaviour
         currentRound++;
         UpdateGameStatusUI();
 
-        // Topu ortala ve yeniden başlat
+        // 1. Raketleri ve topu merkeze al (Topu durdurur)
+        ResetGameObjects();
+
+        // 2. Topun 1 saniye bekleyip tekrar fırlamasını sağla
         if (ball != null)
         {
-            ball.transform.position = Vector3.zero;
             var bc = ball.GetComponent<BallController>();
             if (bc != null) bc.ResetBall();
         }

@@ -12,6 +12,9 @@ public class BallController : MonoBehaviour
     public float wallBounceForce = 0.9f;
     public float minYVelocity = 5f;
 
+    [Header("Effects")]
+    public GameObject hitEffectPrefab;
+
     [Header("Boundaries")]
     public float leftWall = -8f;
     public float rightWall = 8f;
@@ -27,9 +30,11 @@ public class BallController : MonoBehaviour
     float stuckTimer = 0f;
     const float STUCK_TIME_LIMIT = 1f;
 
-    // --- YENİ EKLEMELER ---
-    // Menuden seçilen zorluğu tutacağımız alan:
     AIController.DifficultyLevel difficulty;
+
+    // YENİ: Topa en son kimin vurduğunu takip edeceğiz (Power-Up'lar için)
+    [HideInInspector]
+    public string lastHitter = "";
 
     void Awake()
     {
@@ -42,10 +47,8 @@ public class BallController : MonoBehaviour
 
     void Start()
     {
-        // Zorluğu al
         difficulty = GameSettings.SelectedDifficulty;
 
-        // Kamera bazlı sınırları güncelle (opsiyonel)
         Camera cam = Camera.main;
         if (cam != null && cam.orthographic)
         {
@@ -80,13 +83,12 @@ public class BallController : MonoBehaviour
     {
         gameStarted = true;
         currentSpeed = initialSpeed;
+        lastHitter = ""; // Oyun başlarken son vuranı sıfırla
 
-        // Rastgele bir yön ver
         Vector2 dir = new Vector2(Random.Range(-0.5f, 0.5f),
                                   Random.value < 0.5f ? -1f : 1f).normalized;
         rb.linearVelocity = dir * currentSpeed;
 
-        // Easy’de hiç hızlanma coroutine’i çalıştırma
         if (difficulty != AIController.DifficultyLevel.Easy)
         {
             if (speedIncreaseCoroutine != null) StopCoroutine(speedIncreaseCoroutine);
@@ -96,7 +98,6 @@ public class BallController : MonoBehaviour
 
     IEnumerator IncreaseSpeedOverTime()
     {
-        // Medium için 2×, Hard için 3× hız artışı
         float multiplier = difficulty == AIController.DifficultyLevel.Medium ? 2f : 3f;
 
         while (gameStarted && currentSpeed < maxSpeed)
@@ -187,6 +188,8 @@ public class BallController : MonoBehaviour
         rb.linearVelocity = Vector2.zero;
         currentSpeed = initialSpeed;
         stuckTimer = 0f;
+        lastHitter = ""; // Raund bittiğinde sıfırla
+
         if (speedIncreaseCoroutine != null)
             StopCoroutine(speedIncreaseCoroutine);
 
@@ -203,25 +206,39 @@ public class BallController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        // Sadece paddle’larla ilgilen
         if (col.collider.CompareTag("Player") || col.collider.CompareTag("AI"))
         {
-            // (A) İsteğe bağlı debug: tetikleniyor mu kontrol edin
-            Debug.Log($"Ball collided with {col.collider.name}");
+            // YENİ: Topa kimin vurduğunu kaydet
+            lastHitter = col.collider.tag;
 
-            // (B) Mevcut velocity’i al
             Vector2 currentVel = rb.linearVelocity;
-            // (C) Çarpışma noktasındaki normal
             Vector2 normal = col.contacts[0].normal;
-            // (D) Elle yansıtma
+            Vector2 contactPoint = col.contacts[0].point;
+
+            if (hitEffectPrefab != null)
+            {
+                GameObject effect = Instantiate(hitEffectPrefab, contactPoint, Quaternion.identity);
+                Destroy(effect, 1f);
+            }
+
             Vector2 reflected = Vector2.Reflect(currentVel, normal) * bounceMultiplier;
 
-            // (E) Minimum Y hızını garanti et
+            Rigidbody2D paddleRb = col.collider.GetComponent<Rigidbody2D>();
+            if (paddleRb != null)
+            {
+                float spinFactor = 0.25f;
+                reflected.x += paddleRb.linearVelocity.x * spinFactor;
+            }
+
             if (Mathf.Abs(reflected.y) < minYVelocity)
                 reflected.y = Mathf.Sign(reflected.y) * minYVelocity;
 
-            // (F) Yeni velocity’i uygula
             rb.linearVelocity = reflected;
+
+            if (CameraShake.Instance != null)
+            {
+                CameraShake.Instance.ShakeCamera(0.1f, 0.15f);
+            }
         }
     }
 }

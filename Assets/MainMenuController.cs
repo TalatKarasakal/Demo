@@ -1,60 +1,77 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using TMPro;
 
 public class MainMenuController : MonoBehaviour
 {
     private const int GameSceneIndex = 1;
 
-    [Header("Difficulty Buttons")]
-    public Button easyButton;
-    public Button mediumButton;
-    public Button hardButton;
+    [Header("Menü Elemanları")]
+    public Slider difficultySlider;     // Zorluk Sürgüsü
+    public Toggle movementModeToggle;   // Hareket Modu Şalteri
 
-    [Header("Selection Marker")]
-    public RectTransform marker;              // DifficultyMarker’ın RectTransform’u
-    public Vector2 markerOffset = new Vector2(120f, 0f); // düğme sağına ne kadar kayacak
-
-    void Awake()
-    {
-        // Butonlara listener ekle
-        easyButton.onClick.AddListener(() => OnDifficultySelected(AIController.DifficultyLevel.Easy, easyButton.transform as RectTransform));
-        mediumButton.onClick.AddListener(() => OnDifficultySelected(AIController.DifficultyLevel.Medium, mediumButton.transform as RectTransform));
-        hardButton.onClick.AddListener(() => OnDifficultySelected(AIController.DifficultyLevel.Hard, hardButton.transform as RectTransform));
-    }
+    [Header("Başlatma Butonları")]
+    public Button normalStartButton;
+    public Button arcadeStartButton;
+    public Button quitButton;
 
     void Start()
     {
-        // Başlangıçta “Medium” seçiliyse marker’ı oraya taşı
-        OnDifficultySelected(GameSettings.SelectedDifficulty, mediumButton.transform as RectTransform);
-    }
-
-    void OnDifficultySelected(AIController.DifficultyLevel lvl, RectTransform btnRect)
-    {
-        // 1) Global seçimi kaydet
-        GameSettings.SelectedDifficulty = lvl;
-
-        // 2) Marker’ı aktif et ve doğru yere taşı
-        if (marker != null && btnRect != null)
+        // 1. Zorluk Sürgüsünü Ayarla
+        if (difficultySlider != null)
         {
-            marker.gameObject.SetActive(true);
-            marker.anchoredPosition = btnRect.anchoredPosition + markerOffset;
+            difficultySlider.minValue = 0;
+            difficultySlider.maxValue = 2;
+            difficultySlider.wholeNumbers = true; // Sadece tam sayılar (0, 1, 2)
+            difficultySlider.value = (int)GameSettings.SelectedDifficulty;
+
+            // Sürgü her kaydırıldığında OnDifficultyChanged metodunu çalıştır
+            difficultySlider.onValueChanged.AddListener(OnDifficultyChanged);
         }
+
+        // 2. Mod Şalterini Ayarla (Kapalı = Classic, Açık = DashJump)
+        if (movementModeToggle != null)
+        {
+            movementModeToggle.isOn = (GameSettings.SelectedMovementMode == GameSettings.MovementMode.DashJump);
+            movementModeToggle.onValueChanged.AddListener(OnMovementModeChanged);
+        }
+
+        // 3. Butonları Bağla
+        if (normalStartButton != null) normalStartButton.onClick.AddListener(StartNormalGame);
+        if (arcadeStartButton != null) arcadeStartButton.onClick.AddListener(StartArcadeGame);
+        if (quitButton != null) quitButton.onClick.AddListener(QuitGame);
     }
 
-    // … Mevcut OnPlayButton/OnQuitButton metotlarınız …
-    public void OnPlayButton()
+    public void OnDifficultyChanged(float val)
     {
+        // 0=Easy, 1=Medium, 2=Hard
+        GameSettings.SelectedDifficulty = (AIController.DifficultyLevel)(int)val;
+    }
+
+    public void OnMovementModeChanged(bool isOn)
+    {
+        // Toggle aktifse DashJump, değilse Classic
+        GameSettings.SelectedMovementMode = isOn ? GameSettings.MovementMode.DashJump : GameSettings.MovementMode.Classic;
+    }
+
+    public void StartNormalGame()
+    {
+        GameSettings.IsArcadeMode = false;
         SceneManager.LoadScene(GameSceneIndex);
     }
 
-    public void OnQuitButton()
+    public void StartArcadeGame()
     {
-    #if UNITY_EDITOR
+        GameSettings.IsArcadeMode = true;
+        SceneManager.LoadScene(GameSceneIndex);
+    }
+
+    public void QuitGame()
+    {
+#if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
-    #else
+#else
         Application.Quit();
-    #endif
+#endif
     }
 }
