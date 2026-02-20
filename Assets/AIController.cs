@@ -48,6 +48,9 @@ public class AIController : MonoBehaviour
 
     private Vector3 originalScale;
 
+    private SpriteRenderer sr;
+    private Color originalColor;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -63,8 +66,15 @@ public class AIController : MonoBehaviour
 
         ball = GameObject.FindWithTag("Ball");
         if (ball != null)
+        {
             ballRb = ball.GetComponent<Rigidbody2D>();
-            
+        }
+        sr = GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            originalColor = sr.color;
+        }
+
     }
 
     void Update()
@@ -249,8 +259,12 @@ public class AIController : MonoBehaviour
     private IEnumerator SizeUpRoutine(float duration)
     {
         transform.localScale = new Vector3(originalScale.x, originalScale.y * 1.5f, originalScale.z);
+        if (sr != null) sr.color = new Color(1f, 0.6f, 0f); // Turuncu (Büyüme)
+
         yield return new WaitForSeconds(duration);
+
         transform.localScale = originalScale;
+        if (sr != null) sr.color = originalColor; // Eski renge dön
     }
 
     public void ActivateSlowDown(float duration)
@@ -261,14 +275,18 @@ public class AIController : MonoBehaviour
     private IEnumerator SlowDownRoutine(float duration)
     {
         float origMove = moveSpeed;
-        float origMaxDash = maxDashPower;
-        
+        float origMax = maxDashPower;
+
         moveSpeed *= 0.5f;
         maxDashPower *= 0.5f;
+
+        if (sr != null) sr.color = Color.cyan; // Buz Mavisi (Yavaşlama/Ceza)
 
         yield return new WaitForSeconds(duration);
 
         moveSpeed = origMove;
-        maxDashPower = origMaxDash;
+        maxDashPower = origMax;
+
+        if (sr != null) sr.color = originalColor; // Eski renge dön
     }
 }

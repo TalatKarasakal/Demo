@@ -27,6 +27,9 @@ public class PlayerController : MonoBehaviour
 
     private Vector3 originalScale;
 
+    private SpriteRenderer sr;
+    private Color originalColor;
+
     // Dash (Zıplama) Değişkenleri
     private float currentCharge = 0f;
     private bool isCharging = false;
@@ -44,6 +47,11 @@ public class PlayerController : MonoBehaviour
         // Menüden seçilen modu al
         currentMode = GameSettings.SelectedMovementMode;
         originalScale = transform.localScale;
+        sr = GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            originalColor = sr.color;
+        }
     }
 
     void Update()
@@ -182,11 +190,13 @@ public class PlayerController : MonoBehaviour
 
     private IEnumerator SizeUpRoutine(float duration)
     {
-        // Y ekseninde (uzunluk) raketi 1.5 kat büyüt
         transform.localScale = new Vector3(originalScale.x, originalScale.y * 1.5f, originalScale.z);
+        if (sr != null) sr.color = new Color(1f, 0.6f, 0f); // Turuncu (Büyüme)
+
         yield return new WaitForSeconds(duration);
-        // Süre bitince eski haline dön
+
         transform.localScale = originalScale;
+        if (sr != null) sr.color = originalColor; // Eski renge dön
     }
 
     public void ActivateSlowDown(float duration)
@@ -196,21 +206,25 @@ public class PlayerController : MonoBehaviour
 
     private IEnumerator SlowDownRoutine(float duration)
     {
-        // Mevcut hızları hafızaya al
+        // Tüm orijinal değerleri hafızaya al
         float origMove = moveSpeed;
-        float origCharge = dashChargeRate;
         float origMax = maxDashPower;
+        float origCharge = dashChargeRate; // <-- EKLENEN SATIR
 
-        // Hızları ve gücü yarı yarıya düşür
+        // Değerleri yarıya düşür
         moveSpeed *= 0.5f;
-        dashChargeRate *= 0.5f;
         maxDashPower *= 0.5f;
+        dashChargeRate *= 0.5f; // <-- EKLENEN SATIR
+
+        if (sr != null) sr.color = Color.cyan; // Buz Mavisi (Yavaşlama/Ceza)
 
         yield return new WaitForSeconds(duration);
 
-        // Süre bitince hızları eski haline döndür
+        // Süre bitince değerleri geri yükle
         moveSpeed = origMove;
-        dashChargeRate = origCharge;
         maxDashPower = origMax;
+        dashChargeRate = origCharge; // <-- EKLENEN SATIR
+
+        if (sr != null) sr.color = originalColor; // Eski renge dön
     }
 }
