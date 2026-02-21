@@ -54,6 +54,11 @@ public class DilYoneticisi : MonoBehaviour
         ingilizceSozluk.Add("dashMode", "Dash Mode");
         ingilizceSozluk.Add("pausedTitle", "-PAUSED-");
 
+        ingilizceSozluk.Add("theme", "Theme");
+        ingilizceSozluk.Add("themePastel", "Pastel");
+        ingilizceSozluk.Add("themeDark", "Dark");
+        ingilizceSozluk.Add("themeClassic", "Classic");
+
         turkceSozluk = new Dictionary<string, string>();
         turkceSozluk.Add("gameOver", "Oyun Bitti");
         turkceSozluk.Add("paused", "Duraklatıldı");
@@ -77,6 +82,11 @@ public class DilYoneticisi : MonoBehaviour
         turkceSozluk.Add("chooseLevel", "-SEVİYENİ SEÇ-");
         turkceSozluk.Add("dashMode", "Atılma Modu");
         turkceSozluk.Add("pausedTitle", "-DURAKLATILDI-");
+
+        turkceSozluk.Add("theme", "Tema");
+        turkceSozluk.Add("themePastel", "Pastel");
+        turkceSozluk.Add("themeDark", "Karanlik");
+        turkceSozluk.Add("themeClassic", "Klasik");
     }
 
     public string CeviriAl(string anahtarKelimeler)
