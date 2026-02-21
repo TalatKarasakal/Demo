@@ -3,7 +3,7 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using TMPro;
 
-public class SimpleGameManager : MonoBehaviour
+public class OyunYoneticisi : MonoBehaviour
 {
     [Header("Score Settings")]
     public int playerScore;
@@ -17,8 +17,8 @@ public class SimpleGameManager : MonoBehaviour
     public GameObject player;
     public GameObject aiPaddle;
 
-    // AIController referansı, zorluk seviyesini ayarlamak için
-    private AIController aiController;
+    // YapayZekaKontrol referansı, zorluk seviyesini ayarlamak için
+    private YapayZekaKontrol aiController;
 
     [Header("Game State")]
     public bool gameEnded;
@@ -52,9 +52,9 @@ public class SimpleGameManager : MonoBehaviour
         if (aiScoreText == null) aiScoreText = GameObject.Find("AIScoreText")?.GetComponent<TextMeshProUGUI>();
         if (gameStatusText == null) gameStatusText = GameObject.Find("GameStatusText")?.GetComponent<TextMeshProUGUI>();
 
-        // AIController bileşenini al
+        // YapayZekaKontrol bileşenini al
         if (aiPaddle != null)
-            aiController = aiPaddle.GetComponent<AIController>();
+            aiController = aiPaddle.GetComponent<YapayZekaKontrol>();
 
         // Eksik obje uyarıları
         if (ball == null) Debug.LogError("Ball GameObject bulunamadı!");
@@ -122,7 +122,7 @@ public class SimpleGameManager : MonoBehaviour
         Time.timeScale = 1f;
         UpdateGameStatusUI();
 
-        var bc = ball?.GetComponent<BallController>();
+        var bc = ball?.GetComponent<TopKontrol>();
         if (bc != null) bc.StopBall();
     }
 
@@ -131,7 +131,7 @@ public class SimpleGameManager : MonoBehaviour
         yield return new WaitForSeconds(gameStartDelay);
         if (gameStarted && !gameEnded)
         {
-            var bc = ball?.GetComponent<BallController>();
+            var bc = ball?.GetComponent<TopKontrol>();
             if (bc != null) bc.StartGame();
         }
     }
@@ -191,7 +191,7 @@ public class SimpleGameManager : MonoBehaviour
         // 2. Topun 1 saniye bekleyip tekrar fırlamasını sağla
         if (ball != null)
         {
-            var bc = ball.GetComponent<BallController>();
+            var bc = ball.GetComponent<TopKontrol>();
             if (bc != null) bc.ResetBall();
         }
 
@@ -205,7 +205,7 @@ public class SimpleGameManager : MonoBehaviour
         roundEnded = true;
         UpdateGameStatusUI();
 
-        var bc = ball?.GetComponent<BallController>();
+        var bc = ball?.GetComponent<TopKontrol>();
         if (bc != null) bc.StopBall();
 
         Debug.Log($"Game Over! Winner: {winner}. Final Score: {playerScore}-{aiScore}");
@@ -223,7 +223,7 @@ public class SimpleGameManager : MonoBehaviour
         // Player'ı reset et
         if (player != null)
         {
-            var pc = player.GetComponent<PlayerController>();
+            var pc = player.GetComponent<OyuncuKontrol>();
             if (pc != null) pc.ResetPlayer();
         }
 
@@ -240,7 +240,7 @@ public class SimpleGameManager : MonoBehaviour
         if (ball != null)
         {
             ball.transform.position = Vector3.zero;
-            var bc = ball.GetComponent<BallController>();
+            var bc = ball.GetComponent<TopKontrol>();
             if (bc != null) bc.StopBall();
         }
     }
@@ -262,19 +262,19 @@ public class SimpleGameManager : MonoBehaviour
             if (gameEnded)
             {
                 string winner = GetWinner();
-                gameStatusText.text = $"Game Over - {winner} Wins!";
+                gameStatusText.text = DilYoneticisi.Instance.CeviriAl("gameOver") + " - " + winner + " " + DilYoneticisi.Instance.CeviriAl("wins");
             }
             else if (gamePaused)
             {
-                gameStatusText.text = "PAUSED";
+                gameStatusText.text = DilYoneticisi.Instance.CeviriAl("paused");
             }
             else if (gameStarted)
             {
-                gameStatusText.text = $"Round {currentRound} - Playing";
+                gameStatusText.text = DilYoneticisi.Instance.CeviriAl("round") + " " + currentRound + " - " + DilYoneticisi.Instance.CeviriAl("playing");
             }
             else
             {
-                gameStatusText.text = "Ready to Play";
+                gameStatusText.text = DilYoneticisi.Instance.CeviriAl("ready");
             }
         }
     }
@@ -289,7 +289,7 @@ public class SimpleGameManager : MonoBehaviour
     public bool IsGameActive()
         => gameStarted && !gameEnded && !gamePaused;
 
-    public void SetAIDifficulty(AIController.DifficultyLevel diff)
+    public void SetAIDifficulty(YapayZekaKontrol.DifficultyLevel diff)
     {
         if (aiController != null)
         {
@@ -310,8 +310,8 @@ public class SimpleGameManager : MonoBehaviour
     public string GetScoreText() => $"{playerScore} - {aiScore}";
     public string GetRoundText()
     {
-        if (gameEnded) return "Game Over";
-        if (roundEnded) return "Round End";
-        return $"Round {currentRound}";
+        if (gameEnded) return DilYoneticisi.Instance.CeviriAl("gameOver");
+        if (roundEnded) return "Round End"; 
+        return DilYoneticisi.Instance.CeviriAl("round") + " " + currentRound;
     }
 }

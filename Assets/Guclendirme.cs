@@ -1,9 +1,9 @@
 using UnityEngine;
 
-public class PowerUp : MonoBehaviour
+public class Guclendirme : MonoBehaviour
 {
-    public enum PowerUpType { SizeUp, SlowOpponent, SpeedBall }
-    public PowerUpType type;
+    public enum GuclendirmeType { SizeUp, SlowOpponent, SpeedBall }
+    public GuclendirmeType type;
 
     // Obje sahnede ne kadar kalacak? Alınmazsa kaybolsun.
     public float lifetime = 7f; 
@@ -19,41 +19,41 @@ public class PowerUp : MonoBehaviour
         // Sadece top çarptığında çalışsın
         if (col.CompareTag("Ball"))
         {
-            BallController ball = col.GetComponent<BallController>();
+            TopKontrol ball = col.GetComponent<TopKontrol>();
             
             if (ball != null && !string.IsNullOrEmpty(ball.lastHitter))
             {
                 ApplyEffect(ball.lastHitter, ball);
                 
                 // Efekt (isteğe bağlı - sende hitEffectPrefab vardı, benzer bir şey eklenebilir)
-                // Instantiate(powerupParticle, transform.position, Quaternion.identity);
+                // Instantiate(GuclendirmeParticle, transform.position, Quaternion.identity);
 
                 Destroy(gameObject); // Güçlendirmeyi yok et
             }
         }
     }
 
-    void ApplyEffect(string hitterTag, BallController ball)
+    void ApplyEffect(string hitterTag, TopKontrol ball)
     {
         float effectDuration = 5f; // Etkiler 5 saniye sürecek
         
         // Sahnede oyuncuyu ve yapay zekayı bul
-        PlayerController player = FindObjectOfType<PlayerController>();
-        AIController ai = FindObjectOfType<AIController>();
+        OyuncuKontrol player = FindObjectOfType<OyuncuKontrol>();
+        YapayZekaKontrol ai = FindObjectOfType<YapayZekaKontrol>();
 
-        if (type == PowerUpType.SizeUp)
+        if (type == GuclendirmeType.SizeUp)
         {
             // Büyüme kutusunu alanın KENDİ raketi büyür
             if (hitterTag == "Player" && player != null) player.ActivateSizeUp(effectDuration);
             else if (hitterTag == "AI" && ai != null) ai.ActivateSizeUp(effectDuration);
         }
-        else if (type == PowerUpType.SlowOpponent)
+        else if (type == GuclendirmeType.SlowOpponent)
         {
             // Yavaşlatma kutusunu alan, RAKİBİNİ yavaşlatır
             if (hitterTag == "Player" && ai != null) ai.ActivateSlowDown(effectDuration);
             else if (hitterTag == "AI" && player != null) player.ActivateSlowDown(effectDuration);
         }
-        else if (type == PowerUpType.SpeedBall)
+        else if (type == GuclendirmeType.SpeedBall)
         {
             // Topun hızını anlık olarak %50 artır
             Rigidbody2D ballRb = ball.GetComponent<Rigidbody2D>();

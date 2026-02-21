@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
-public class UIManager : MonoBehaviour
+public class ArayuzYoneticisi : MonoBehaviour
 {
     [Header("Panels")]
     public GameObject mainMenuPanel;
@@ -34,78 +34,91 @@ public class UIManager : MonoBehaviour
     public TMP_Text aiScoreText;
     public TMP_Text gameStatusText;
 
+    [Header("Çevrilecek Menü Metinleri")]
+    public TMP_Text resumeText;
+    public TMP_Text restartText;
+    public TMP_Text pauseMenuText;
+    public TMP_Text playAgainText;
+    public TMP_Text gameOverMenuText;
+    
+    // YENİ EKLENEN BAŞLIK REFERANSLARI
+    public TMP_Text pausedTitleText;
+    public TMP_Text gameOverTitleText; 
+
     [Header("GameManager")]
-    public SimpleGameManager gameManager;
+    public OyunYoneticisi gameManager;
+
+    void OnEnable()
+    {
+        DilYoneticisi.OnDilDegisti += MetinleriGuncelle;
+    }
+
+    void OnDisable()
+    {
+        DilYoneticisi.OnDilDegisti -= MetinleriGuncelle;
+    }
 
     void Start()
     {
         if (gameManager == null)
-        {
-            gameManager = FindObjectOfType<SimpleGameManager>();
-            if (gameManager == null)
-                Debug.LogError("GameManager bulunamadı!");
-        }
+            gameManager = FindObjectOfType<OyunYoneticisi>();
 
         SetupButtons();
         ShowMainMenu();
+        MetinleriGuncelle();
+    }
+
+    void MetinleriGuncelle()
+    {
+        if (DilYoneticisi.Instance == null) return;
+
+        if (resumeText != null) resumeText.text = DilYoneticisi.Instance.CeviriAl("resume");
+        if (restartText != null) restartText.text = DilYoneticisi.Instance.CeviriAl("restart");
+        if (pauseMenuText != null) pauseMenuText.text = DilYoneticisi.Instance.CeviriAl("mainMenu");
+        if (playAgainText != null) playAgainText.text = DilYoneticisi.Instance.CeviriAl("playAgain");
+        if (gameOverMenuText != null) gameOverMenuText.text = DilYoneticisi.Instance.CeviriAl("mainMenu");
+        
+        // YENİ BAŞLIK ÇEVİRİLERİ
+        if (pausedTitleText != null) pausedTitleText.text = DilYoneticisi.Instance.CeviriAl("pausedTitle");
+        
+        UpdateUI(); 
     }
 
     void SetupButtons()
     {
         if (startButton != null) startButton.onClick.AddListener(StartGame);
         if (quitButton != null) quitButton.onClick.AddListener(QuitGame);
-
         if (pauseButton != null) pauseButton.onClick.AddListener(PauseGame);
         if (mainMenuButton != null) mainMenuButton.onClick.AddListener(GoToMainMenu);
-
         if (resumeButton != null) resumeButton.onClick.AddListener(ResumeGame);
         if (restartButton != null) restartButton.onClick.AddListener(RestartGame);
         if (pauseMenuButton != null) pauseMenuButton.onClick.AddListener(GoToMainMenu);
-
         if (playAgainButton != null) playAgainButton.onClick.AddListener(RestartGame);
         if (menuButton != null) menuButton.onClick.AddListener(GoToMainMenu);
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (Input.GetKeyDown(KeyCode.Escape) && gameManager != null && gameManager.gameStarted && !gameManager.gameEnded)
         {
-            if (gameManager != null && gameManager.gameStarted && !gameManager.gameEnded)
-            {
-                PauseGame();
-            }
+            PauseGame();
         }
-
         UpdateUI();
     }
 
     void UpdateUI()
     {
-        if (gameManager == null) return;
+        if (gameManager == null || DilYoneticisi.Instance == null) return;
 
-        if (playerScoreText != null)
-            playerScoreText.text = gameManager.playerScore.ToString();
-        if (aiScoreText != null)
-            aiScoreText.text = gameManager.aiScore.ToString();
+        if (playerScoreText != null) playerScoreText.text = gameManager.playerScore.ToString();
+        if (aiScoreText != null) aiScoreText.text = gameManager.aiScore.ToString();
 
         if (gameStatusText != null)
         {
-            if (gameManager.gameEnded)
-            {
-                gameStatusText.text = "Game Over";
-            }
-            else if (gameManager.gamePaused)
-            {
-                gameStatusText.text = "Paused";
-            }
-            else if (gameManager.gameStarted)
-            {
-                gameStatusText.text = "Playing";
-            }
-            else
-            {
-                gameStatusText.text = "Ready";
-            }
+            if (gameManager.gameEnded) gameStatusText.text = DilYoneticisi.Instance.CeviriAl("gameOver");
+            else if (gameManager.gamePaused) gameStatusText.text = DilYoneticisi.Instance.CeviriAl("paused");
+            else if (gameManager.gameStarted) gameStatusText.text = DilYoneticisi.Instance.CeviriAl("playing");
+            else gameStatusText.text = DilYoneticisi.Instance.CeviriAl("ready");
         }
 
         if (gameManager.gameEnded && gameOverPanel != null && !gameOverPanel.activeSelf)
@@ -122,11 +135,7 @@ public class UIManager : MonoBehaviour
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
 
         Time.timeScale = 1f;
-
-        if (gameManager != null)
-        {
-            gameManager.StartGame();
-        }
+        if (gameManager != null) gameManager.StartGame();
     }
 
     public void PauseGame()
@@ -134,9 +143,7 @@ public class UIManager : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.PauseGame();
-
-            if (pausePanel != null)
-                pausePanel.SetActive(gameManager.gamePaused);
+            if (pausePanel != null) pausePanel.SetActive(gameManager.gamePaused);
         }
     }
 
@@ -145,9 +152,7 @@ public class UIManager : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.ResumeGame();
-
-            if (pausePanel != null)
-                pausePanel.SetActive(false);
+            if (pausePanel != null) pausePanel.SetActive(false);
         }
     }
 
@@ -155,24 +160,15 @@ public class UIManager : MonoBehaviour
     {
         if (pausePanel != null) pausePanel.SetActive(false);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
-
-        if (gameManager != null)
-        {
-            gameManager.RestartGame();
-        }
+        if (gameManager != null) gameManager.RestartGame();
     }
 
     public void GoToMainMenu()
     {
-        // Eğer oyunu durdurduysanız zamanı geri açın
         Time.timeScale = 1f;
-
-        // Oyun içi değerleri sıfırlamak istiyorsanız (opsiyonel)
         gameManager?.StopGame();
-        gameManager.gameEnded = false;
-
-        // Ana Menü sahnesine dön
-        SceneManager.LoadScene(0); // 0 yerine MainMenu sahnenizin Build Index’ini veya adını kullanabilirsiniz
+        if (gameManager != null) gameManager.gameEnded = false;
+        SceneManager.LoadScene(0); 
     }
 
     void ShowMainMenu()
@@ -188,11 +184,12 @@ public class UIManager : MonoBehaviour
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
-
-            if (winnerText != null && gameManager != null)
+            if (winnerText != null && gameManager != null && DilYoneticisi.Instance != null)
             {
+                // PLAYER VE AI İSİMLERİNİ DE ÇEVİRİYORUZ
                 string winner = gameManager.GetWinner();
-                winnerText.text = winner + " Wins!";
+                string translatedWinner = winner == "Player" ? DilYoneticisi.Instance.CeviriAl("player") : DilYoneticisi.Instance.CeviriAl("ai");
+                winnerText.text = translatedWinner + " " + DilYoneticisi.Instance.CeviriAl("wins");
             }
         }
     }

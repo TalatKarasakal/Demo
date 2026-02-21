@@ -1,9 +1,9 @@
 using UnityEngine;
 using System.Collections;
 
-public class CameraShake : MonoBehaviour
+public class KameraSarsıntısı : MonoBehaviour
 {
-    public static CameraShake Instance; // Her yerden kolayca ulaşmak için Singleton
+    public static KameraSarsıntısı Instance; // Her yerden kolayca ulaşmak için Singleton
     private Vector3 originalPos;
 
     void Awake()

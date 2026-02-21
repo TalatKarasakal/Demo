@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class PlayerController : MonoBehaviour
+public class OyuncuKontrol : MonoBehaviour
 {
     [Header("Movement Settings (Classic)")]
     public float moveSpeed = 8f;
@@ -23,7 +23,7 @@ public class PlayerController : MonoBehaviour
     public float boundaryRight = 7f;
 
     private Rigidbody2D rb;
-    private GameSettings.MovementMode currentMode;
+    private OyunAyarlari.MovementMode currentMode;
 
     private Vector3 originalScale;
 
@@ -38,14 +38,14 @@ public class PlayerController : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        if (rb == null) Debug.LogError("PlayerController: Rigidbody2D bulunamadı!");
+        if (rb == null) Debug.LogError("OyuncuKontrol: Rigidbody2D bulunamadı!");
         else rb.freezeRotation = true;
     }
 
     void Start()
     {
         // Menüden seçilen modu al
-        currentMode = GameSettings.SelectedMovementMode;
+        currentMode = OyunAyarlari.SelectedMovementMode;
         originalScale = transform.localScale;
         sr = GetComponent<SpriteRenderer>();
         if (sr != null)
@@ -57,11 +57,11 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         // Seçilen moda göre hareket sistemini çalıştır
-        if (currentMode == GameSettings.MovementMode.Classic)
+        if (currentMode == OyunAyarlari.MovementMode.Classic)
         {
             HandleClassicMovement();
         }
-        else if (currentMode == GameSettings.MovementMode.DashJump)
+        else if (currentMode == OyunAyarlari.MovementMode.DashJump)
         {
             HandleDashJumpMovement();
         }

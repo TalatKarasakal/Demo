@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class AIController : MonoBehaviour
+public class YapayZekaKontrol : MonoBehaviour
 {
     public enum DifficultyLevel { Easy, Medium, Hard }
 
@@ -34,7 +34,7 @@ public class AIController : MonoBehaviour
     private Rigidbody2D ballRb;
     private float homeX;
 
-    private GameSettings.MovementMode currentMode;
+    private OyunAyarlari.MovementMode currentMode;
 
     private bool isCharging = false;
     private float currentCharge = 0f;
@@ -60,8 +60,8 @@ public class AIController : MonoBehaviour
 
     void Start()
     {
-        currentDifficulty = GameSettings.SelectedDifficulty;
-        currentMode = GameSettings.SelectedMovementMode;
+        currentDifficulty = OyunAyarlari.SelectedDifficulty;
+        currentMode = OyunAyarlari.SelectedMovementMode;
         originalScale = transform.localScale;
 
         ball = GameObject.FindWithTag("Ball");
@@ -104,11 +104,11 @@ public class AIController : MonoBehaviour
             _ => 0.5f
         };
 
-        if (currentMode == GameSettings.MovementMode.Classic)
+        if (currentMode == OyunAyarlari.MovementMode.Classic)
         {
             HandleClassicMovement();
         }
-        else if (currentMode == GameSettings.MovementMode.DashJump)
+        else if (currentMode == OyunAyarlari.MovementMode.DashJump)
         {
             HandleDashMovement();
         }

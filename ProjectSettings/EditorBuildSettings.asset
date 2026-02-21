@@ -6,10 +6,10 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: "Assets/Scenes/AnaMen\xFC.unity"
+    path: Assets/Scenes/AnaSayfa.unity
     guid: 7a889ac1cfd3b4c7080cd1a5eda54747
   - enabled: 1
-    path: Assets/Scenes/oyun.unity
+    path: Assets/Scenes/Oyun.unity
     guid: 5de00e88284ce4c86befe2a605800d4f
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

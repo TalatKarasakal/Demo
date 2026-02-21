@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class BallController : MonoBehaviour
+public class TopKontrol : MonoBehaviour
 {
     [Header("Ball Settings")]
     public float initialSpeed = 10f;
@@ -23,16 +23,16 @@ public class BallController : MonoBehaviour
 
     Rigidbody2D rb;
     Vector2 lastVel;
-    SimpleGameManager gm;
+    OyunYoneticisi gm;
     bool gameStarted = false;
     float currentSpeed;
     Coroutine speedIncreaseCoroutine;
     float stuckTimer = 0f;
     const float STUCK_TIME_LIMIT = 1f;
 
-    AIController.DifficultyLevel difficulty;
+    YapayZekaKontrol.DifficultyLevel difficulty;
 
-    // YENİ: Topa en son kimin vurduğunu takip edeceğiz (Power-Up'lar için)
+   
     [HideInInspector]
     public string lastHitter = "";
 
@@ -40,14 +40,14 @@ public class BallController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         if (rb == null)
-            Debug.LogError("BallController: Rigidbody2D bulunamadı!", this);
+            Debug.LogError("TopKontrol: Rigidbody2D bulunamadı!", this);
         else
             rb.freezeRotation = true;
     }
 
     void Start()
     {
-        difficulty = GameSettings.SelectedDifficulty;
+        difficulty = OyunAyarlari.SelectedDifficulty;
 
         Camera cam = Camera.main;
         if (cam != null && cam.orthographic)
@@ -61,9 +61,9 @@ public class BallController : MonoBehaviour
             bottomBoundary = -h + r;
         }
 
-        gm = Object.FindAnyObjectByType<SimpleGameManager>();
+        gm = Object.FindAnyObjectByType<OyunYoneticisi>();
         if (gm == null)
-            Debug.LogError("BallController: SimpleGameManager bulunamadı!", this);
+            Debug.LogError("TopKontrol: OyunYoneticisi bulunamadı!", this);
 
         rb.linearVelocity = Vector2.zero;
         currentSpeed = initialSpeed;
@@ -89,7 +89,7 @@ public class BallController : MonoBehaviour
                                   Random.value < 0.5f ? -1f : 1f).normalized;
         rb.linearVelocity = dir * currentSpeed;
 
-        if (difficulty != AIController.DifficultyLevel.Easy)
+        if (difficulty != YapayZekaKontrol.DifficultyLevel.Easy)
         {
             if (speedIncreaseCoroutine != null) StopCoroutine(speedIncreaseCoroutine);
             speedIncreaseCoroutine = StartCoroutine(IncreaseSpeedOverTime());
@@ -98,7 +98,7 @@ public class BallController : MonoBehaviour
 
     IEnumerator IncreaseSpeedOverTime()
     {
-        float multiplier = difficulty == AIController.DifficultyLevel.Medium ? 2f : 3f;
+        float multiplier = difficulty == YapayZekaKontrol.DifficultyLevel.Medium ? 2f : 3f;
 
         while (gameStarted && currentSpeed < maxSpeed)
         {
@@ -235,9 +235,9 @@ public class BallController : MonoBehaviour
 
             rb.linearVelocity = reflected;
 
-            if (CameraShake.Instance != null)
+            if (KameraSarsıntısı.Instance != null)
             {
-                CameraShake.Instance.ShakeCamera(0.1f, 0.15f);
+                KameraSarsıntısı.Instance.ShakeCamera(0.1f, 0.15f);
             }
         }
     }

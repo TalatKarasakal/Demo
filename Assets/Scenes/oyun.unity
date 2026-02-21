@@ -1203,7 +1203,7 @@ GameObject:
   - component: {fileID: 578975473}
   - component: {fileID: 578975472}
   m_Layer: 0
-  m_Name: AI
+  m_Name: YapayZeka
   m_TagString: AI
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2656,10 +2656,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa0567f50775c46f8857036447c867a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerUpSpawner
-  powerUpPrefabs:
-  - {fileID: 6562814696825572602, guid: acd9c851d5e9a44b486289f7eee6a475, type: 3}
-  - {fileID: 1547888713330463936, guid: 58f2272740dfe4019b828544190d596f, type: 3}
-  - {fileID: 4658882288520153103, guid: 127e6289eb24343eab41d3895afc1e3a, type: 3}
+  GuclendirmePrefabs: []
   minSpawnTime: 5
   maxSpawnTime: 12
   spawnAreaWidth: 6
@@ -4126,7 +4123,7 @@ GameObject:
   - component: {fileID: 2052108917}
   - component: {fileID: 2052108916}
   m_Layer: 0
-  m_Name: UIManager
+  m_Name: ArayuzYoneticisi
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4161,6 +4158,13 @@ MonoBehaviour:
   playerScoreText: {fileID: 0}
   aiScoreText: {fileID: 0}
   gameStatusText: {fileID: 0}
+  resumeText: {fileID: 523985764}
+  restartText: {fileID: 1299831464}
+  pauseMenuText: {fileID: 1144101493}
+  playAgainText: {fileID: 1558318200}
+  gameOverMenuText: {fileID: 1487358891}
+  pausedTitleText: {fileID: 132629500}
+  gameOverTitleText: {fileID: 1487358891}
   gameManager: {fileID: 465654436}
 --- !u!4 &2052108917
 Transform:
